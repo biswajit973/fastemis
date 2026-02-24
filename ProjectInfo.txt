@@ -17,7 +17,7 @@ The platform supports a full end-to-end flow: browsing partners, viewing partner
 ## 3. Core Features & Components Built
 ### Public Pages
 - **Navbar:** Sticky navigation with dynamic branding based on the active partner.
-- **Home Component (`/`):** Includes Hero, Stats, How It Works, Partner Grid, Trust Signals, and FAQ sections.
+- **Home Component (`/`):** Includes Hero, Stats, How It Works, Top EMI Devices showcase (YouTube embeds), Partner Grid, Trust Signals, and FAQ sections.
 - **Location Dialog Modal:** Prompts the user to confirm their location before proceeding to a partner page.
 
 ### Partner Detail Page (`/partner/:slug`)
@@ -28,7 +28,7 @@ The platform supports a full end-to-end flow: browsing partners, viewing partner
 A reactive multi-step wizard:
 - Step 1: Personal Information
 - Step 2: Address Details
-- Step 3: KYC Documents (PAN / Aadhaar validation)
+- Step 3: KYC Documents (Global Tax ID / National ID validation)
 - Step 4: Employment & Loan Details
 - Step 5: Account Security (OTP & Password generation)
 
@@ -37,12 +37,24 @@ The command center for users post-application:
 - **Status Tracker:** A visual stepper showing the journey from Submitted -> Verified -> Disbursed.
 - **BGV Card:** Simulates a Background Verification check.
 - **Agreement Card:** Prompts the user to sign the Terms & Conditions. Fully full-screen overlay component.
-- **Payment Card:** Handles the first advance EMI payment. Features a live Countdown Timer component (expects `string | Date`) and an Upload screenshot zone.
+- **Send Payments (`/dashboard/payments`):** A secure portal to view live QR codes and bank details (Global or User-Specific overriding) and upload transaction proofs.
 - **Completion Card:** Displays the final loan schedule once disbursed.
 
-### Messaging System (`/dashboard/messages`)
-- A WhatsApp-style live chat interface.
+### Community & Messaging (`/dashboard/community` & `/dashboard/messages`)
+- A global group chat interface for community discussions (supports real-time media uploads).
+- A WhatsApp-style live 1-on-1 support chat interface.
 - Includes a polling interval simulating external "System" messages (e.g., "Credit bureau match successful!").
+
+### Agent & Developer Portals
+- **Agent Dashboard (`/agent`):** Full control panel to manage user profiles, reject BGV, spoof active community chats, ban users, and deploy global notification marquees.
+- **Agent Payments Config (`/agent/payments`):** Administrative hub to generate and assign rotating global payment constraints or user-specific bank overrides.
+- **Developer API Wiki (`/feature-details`):** An exhaustive, developer-ready checklist mapping out all frontend statuses, required backend APIs (Methods/Paths), Realtime Websocket Events, and Role-Based Security Rules.
+- **Tester Hub (`/tester`):** An automated indexing route designed for QA engineers to quickly bypass OTP flows and jump to nested endpoints.
+
+## 4. Globalization & Theming Note
+The FastEMIs platform has been explicitly restructured as a global B2B2C offering:
+- All localized Indian terminology (RBI/NBFC/Digilocker/PAN) has been abstracted into generic western equivalents (Globally Regulated / Licensed Institution / e-KYC / Tax ID).
+- Currencies pipe default to `USD ($)`, but the platform is capable of dynamically handling localized rendering payloads.
 
 ## 4. Important Notes & Fixes for Future Agents (READ THIS!)
 1. **NPM Installations:** The host machine has severe `EPERM` issues inside `/Users/biswajitpanda/.npm` and `node_modules`. **Do not attempt to run `npm install`** without explicit user permission. It will fail. Stick to coding fixes instead of installing new packages whenever possible.
