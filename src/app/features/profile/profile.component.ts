@@ -14,9 +14,17 @@ import { AgentDataService, AgentUserProfile } from '../../core/services/agent-da
     <main class="pt-20 md:pt-24 pb-24 md:pb-12 md:pl-64 min-h-screen bg-surface-2">
       <div class="container max-w-4xl py-6">
         <div class="bg-surface border border-border rounded-2xl shadow-sm overflow-hidden">
-          <div class="px-6 py-4 border-b border-border bg-surface-2">
-            <h1 class="text-2xl font-bold text-primary">Profile Details</h1>
-            <p class="text-sm text-secondary">Basic details submitted during signup.</p>
+          <div class="px-6 py-4 border-b border-border bg-surface-2 flex items-center justify-between">
+            <div>
+              <h1 class="text-2xl font-bold text-primary">Profile Details</h1>
+              <p class="text-sm text-secondary">Basic details submitted during signup.</p>
+            </div>
+            <div *ngIf="currentUserRole()">
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm"
+                [ngClass]="currentUserRole() === 'vendor' ? 'bg-accent/10 border border-accent/20 text-accent' : 'bg-primary/10 border border-primary/20 text-primary'">
+                {{ currentUserRole() === 'vendor' ? 'Agent Account' : 'User Account' }}
+              </span>
+            </div>
           </div>
 
           <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm" *ngIf="profile(); else noProfile">
@@ -76,6 +84,7 @@ import { AgentDataService, AgentUserProfile } from '../../core/services/agent-da
 })
 export class ProfileComponent implements OnInit {
   profile = signal<AgentUserProfile | null>(null);
+  currentUserRole = signal<string | null>(null);
 
   constructor(
     private authService: AuthService,
@@ -83,12 +92,13 @@ export class ProfileComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    const userId = this.authService.currentUserSignal()?.id;
-    if (!userId) {
+    const currentUser = this.authService.currentUserSignal();
+    if (!currentUser) {
       return;
     }
 
-    const profile = this.agentDataService.getUserById(userId);
+    this.currentUserRole.set(currentUser.role || null);
+    const profile = this.agentDataService.getUserById(currentUser.id);
     this.profile.set(profile);
   }
 }

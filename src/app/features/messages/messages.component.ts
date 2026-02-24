@@ -17,12 +17,13 @@ import { ChatMessage, ChatService } from '../../core/services/chat.service';
         </a>
         <div class="flex items-center gap-3">
           <div class="relative">
-            <div class="w-10 h-10 rounded-full bg-primary-light/20 flex items-center justify-center text-primary font-bold">FA</div>
+            <div class="w-10 h-10 rounded-full bg-primary-light/20 flex items-center justify-center text-primary font-bold">{{ agentInitials() }}</div>
             <div class="absolute bottom-0 right-0 w-3 h-3 bg-success border-2 border-surface rounded-full"></div>
           </div>
           <div>
             <h2 class="font-bold text-primary leading-tight">{{ agentDisplayName() }}</h2>
-            <p class="text-xs text-secondary">Connected Support</p>
+            <p class="text-xs text-secondary" *ngIf="agentDisplayName() === 'FastEMIs Agent'">Connected Support</p>
+            <p class="text-xs text-secondary" *ngIf="agentDisplayName() !== 'FastEMIs Agent'">Support Executive</p>
           </div>
         </div>
       </header>
@@ -112,6 +113,16 @@ export class MessagesComponent implements OnInit, AfterViewChecked, OnDestroy {
   agentDisplayName(): string {
     const currentUser = this.authService.currentUserSignal();
     return currentUser?.assignedAgentName || this.chatService.getAgentAlias(this.activeUserId());
+  }
+
+  agentInitials(): string {
+    const name = this.agentDisplayName();
+    if (name === 'FastEMIs Agent') return 'FA';
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
   }
 
   sendMessage() {

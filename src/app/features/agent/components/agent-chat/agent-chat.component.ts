@@ -4,10 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { ChatMessage, ChatService } from '../../../../core/services/chat.service';
 
 @Component({
-    selector: 'app-agent-chat',
-    standalone: true,
-    imports: [CommonModule, FormsModule],
-    template: `
+  selector: 'app-agent-chat',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  template: `
     <div class="bg-surface border border-border rounded-xl shadow-sm flex flex-col overflow-hidden relative"
       [ngClass]="fullPage ? 'h-[calc(100vh-13rem)] md:h-[calc(100vh-12rem)]' : 'h-[680px]'">
       <div *ngIf="showAliasPopup()" class="absolute inset-0 z-20 bg-surface/85 backdrop-blur-sm flex items-center justify-center p-6">
@@ -116,123 +116,123 @@ import { ChatMessage, ChatService } from '../../../../core/services/chat.service
   `
 })
 export class AgentChatComponent implements OnChanges, AfterViewChecked {
-    @Input() userId: string = '';
-    @Input() userName: string = '';
-    @Input() lastLoginAt: string = '';
-    @Input() fullPage: boolean = false;
+  @Input() userId: string = '';
+  @Input() userName: string = '';
+  @Input() lastLoginAt: string = '';
+  @Input() fullPage: boolean = false;
 
-    @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
+  @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
 
-    customAgentName: string = '';
-    newMessage: string = '';
+  customAgentName: string = '';
+  newMessage: string = '';
 
-    showMediaGallery = signal<boolean>(false);
-    showAliasPopup = signal<boolean>(false);
+  showMediaGallery = signal<boolean>(false);
+  showAliasPopup = signal<boolean>(false);
 
-    constructor(private chatService: ChatService) { }
+  constructor(private chatService: ChatService) { }
 
-    ngOnChanges(changes: SimpleChanges): void {
-        if (changes['userId']) {
-            const alias = this.chatService.getAgentAlias(this.userId);
-            this.customAgentName = alias;
-            this.showAliasPopup.set(!alias || alias === 'FastEMIs Agent');
-        }
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['userId']) {
+      const alias = this.chatService.getAgentAlias(this.userId);
+      this.customAgentName = alias;
+      this.showAliasPopup.set(!alias || alias === 'FastEMIs Agent');
+    }
+  }
+
+  ngAfterViewChecked() {
+    this.scrollToBottom();
+  }
+
+  messages(): ChatMessage[] {
+    return this.chatService.getMessages(this.userId).filter(m => !m.hiddenFromAgent);
+  }
+
+  sharedMedia(): ChatMessage[] {
+    return this.chatService.getSharedMedia(this.userId);
+  }
+
+  activeAgentName(): string {
+    return this.chatService.getAgentAlias(this.userId);
+  }
+
+  connectToChat() {
+    if (!this.userId || !this.customAgentName.trim()) {
+      return;
+    }
+    this.chatService.setAgentAlias(this.userId, this.customAgentName.trim());
+    this.showAliasPopup.set(false);
+  }
+
+  sendMessage() {
+    if (!this.userId || !this.newMessage.trim()) {
+      return;
     }
 
-    ngAfterViewChecked() {
-        this.scrollToBottom();
+    this.chatService.sendMessage(this.userId, {
+      sender: 'agent',
+      senderName: this.activeAgentName(),
+      content: this.newMessage.trim(),
+      type: 'text'
+    });
+
+    this.newMessage = '';
+  }
+
+  onFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file || !this.userId) {
+      return;
     }
 
-    messages(): ChatMessage[] {
-        return this.chatService.getMessages(this.userId);
+    const objectUrl = URL.createObjectURL(file);
+
+    this.chatService.sendMessage(this.userId, {
+      sender: 'agent',
+      senderName: this.activeAgentName(),
+      content: 'Shared media',
+      type: 'media',
+      mediaName: file.name,
+      mediaUrl: objectUrl
+    });
+
+    input.value = '';
+  }
+
+  deleteMessage(messageId: string) {
+    this.chatService.deleteMessageForEveryone(this.userId, messageId);
+  }
+
+  formatDateTime(value?: string): string {
+    if (!value) return '-';
+    return new Date(value).toLocaleString([], {
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  initials(name: string): string {
+    if (!name) return 'U';
+    return name.split(' ').slice(0, 2).map(part => part[0]?.toUpperCase() || '').join('');
+  }
+
+  isImage(name?: string): boolean {
+    return !!name && /(png|jpg|jpeg|gif|webp)$/i.test(name);
+  }
+
+  isVideo(name?: string): boolean {
+    return !!name && /(mp4|webm|ogg|mov)$/i.test(name);
+  }
+
+  private scrollToBottom() {
+    try {
+      if (!this.showMediaGallery()) {
+        this.scrollContainer.nativeElement.scrollTop = this.scrollContainer.nativeElement.scrollHeight;
+      }
+    } catch (e) {
+      // no-op
     }
-
-    sharedMedia(): ChatMessage[] {
-        return this.chatService.getSharedMedia(this.userId);
-    }
-
-    activeAgentName(): string {
-        return this.chatService.getAgentAlias(this.userId);
-    }
-
-    connectToChat() {
-        if (!this.userId || !this.customAgentName.trim()) {
-            return;
-        }
-        this.chatService.setAgentAlias(this.userId, this.customAgentName.trim());
-        this.showAliasPopup.set(false);
-    }
-
-    sendMessage() {
-        if (!this.userId || !this.newMessage.trim()) {
-            return;
-        }
-
-        this.chatService.sendMessage(this.userId, {
-            sender: 'agent',
-            senderName: this.activeAgentName(),
-            content: this.newMessage.trim(),
-            type: 'text'
-        });
-
-        this.newMessage = '';
-    }
-
-    onFileSelected(event: Event) {
-        const input = event.target as HTMLInputElement;
-        const file = input.files?.[0];
-        if (!file || !this.userId) {
-            return;
-        }
-
-        const objectUrl = URL.createObjectURL(file);
-
-        this.chatService.sendMessage(this.userId, {
-            sender: 'agent',
-            senderName: this.activeAgentName(),
-            content: 'Shared media',
-            type: 'media',
-            mediaName: file.name,
-            mediaUrl: objectUrl
-        });
-
-        input.value = '';
-    }
-
-    deleteMessage(messageId: string) {
-        this.chatService.deleteMessageForEveryone(this.userId, messageId);
-    }
-
-    formatDateTime(value?: string): string {
-        if (!value) return '-';
-        return new Date(value).toLocaleString([], {
-            month: 'short',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    }
-
-    initials(name: string): string {
-        if (!name) return 'U';
-        return name.split(' ').slice(0, 2).map(part => part[0]?.toUpperCase() || '').join('');
-    }
-
-    isImage(name?: string): boolean {
-        return !!name && /(png|jpg|jpeg|gif|webp)$/i.test(name);
-    }
-
-    isVideo(name?: string): boolean {
-        return !!name && /(mp4|webm|ogg|mov)$/i.test(name);
-    }
-
-    private scrollToBottom() {
-        try {
-            if (!this.showMediaGallery()) {
-                this.scrollContainer.nativeElement.scrollTop = this.scrollContainer.nativeElement.scrollHeight;
-            }
-        } catch (e) {
-            // no-op
-        }
-    }
+  }
 }

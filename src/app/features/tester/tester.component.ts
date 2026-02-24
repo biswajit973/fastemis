@@ -186,6 +186,14 @@ export class TesterComponent {
           access: 'Public',
           testFocus: 'Backend API checklist, statuses, security notes, flow documentation.',
           notes: 'Use this page as backend handover reference.'
+        },
+        {
+          page: 'API Integration Test',
+          route: '/tester/api',
+          component: 'ApiTestComponent',
+          access: 'Public',
+          testFocus: 'Live HTTP GET requests to external REST API (dogapi.dog)',
+          notes: 'Example configuration for Django REST Framework (DRF).'
         }
       ]
     },

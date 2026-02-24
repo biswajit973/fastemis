@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal, WritableSignal } from '@angular/core';
 import { AuthService } from './auth.service';
 
 export interface ChatMessage {
@@ -11,6 +11,7 @@ export interface ChatMessage {
     type: 'text' | 'media';
     mediaUrl?: string;
     mediaName?: string;
+    hiddenFromAgent?: boolean;
 }
 
 interface ChatThreads {
@@ -27,6 +28,7 @@ export class ChatService {
 
     private threads: ChatThreads = {};
     private agentAliases: Record<string, string> = {};
+    private unreadCounts = new Map<string, WritableSignal<number>>();
 
     constructor(private authService: AuthService) {
         this.loadFromStorage();
@@ -55,12 +57,36 @@ export class ChatService {
         if (Object.keys(this.threads).length === 0) {
             this.threads = this.defaultThreads();
             this.saveToStorage();
+        } else {
+            this.notifyAllUnreadSignals();
         }
     }
 
     private saveToStorage() {
         localStorage.setItem(this.threadsStorageKey, JSON.stringify(this.threads));
         localStorage.setItem(this.aliasesStorageKey, JSON.stringify(this.agentAliases));
+        this.notifyAllUnreadSignals();
+    }
+
+    private notifyAllUnreadSignals() {
+        this.unreadCounts.forEach((_, userId) => {
+            this.updateUnreadSignal(userId);
+        });
+    }
+
+    private updateUnreadSignal(userId: string) {
+        if (this.unreadCounts.has(userId)) {
+            const count = (this.threads[userId] || []).filter(m => !m.read && m.sender !== 'user').length;
+            this.unreadCounts.get(userId)!.set(count);
+        }
+    }
+
+    getUnreadSignal(userId: string = this.defaultUserId): WritableSignal<number> {
+        if (!this.unreadCounts.has(userId)) {
+            const count = (this.threads[userId] || []).filter(m => !m.read && m.sender !== 'user').length;
+            this.unreadCounts.set(userId, signal<number>(count));
+        }
+        return this.unreadCounts.get(userId)!;
     }
 
     private ensureThread(userId: string) {
@@ -131,12 +157,23 @@ export class ChatService {
     }
 
     setAgentAlias(userId: string, alias: string) {
+        const existingAlias = this.agentAliases[userId];
+
         this.agentAliases[userId] = alias;
         localStorage.setItem(`assigned_agent_name_${userId}`, alias);
 
         const user = this.authService.currentUserSignal();
         if (user?.id === userId) {
             this.authService.setUser({ ...user, assignedAgentName: alias });
+        }
+
+        if (existingAlias !== alias && alias && alias !== 'FastEMIs Agent') {
+            this.sendMessage(userId, {
+                sender: 'system',
+                content: `You are now connected with Support Executive ${alias}.`,
+                type: 'text',
+                hiddenFromAgent: true
+            });
         }
 
         this.saveToStorage();

@@ -78,6 +78,12 @@ export const routes: Routes = [
         data: { breadcrumb: 'Tester' }
     },
     {
+        path: 'tester/api',
+        loadComponent: () => import('./features/tester/api-test.component').then(m => m.ApiTestComponent),
+        title: 'FastEMIs - API Fetch Test',
+        data: { breadcrumb: 'API Test' }
+    },
+    {
         path: 'feature-details',
         loadComponent: () => import('./features/feature-details/feature-details.component').then(m => m.FeatureDetailsComponent),
         title: 'FastEMIs - All Feature Details',

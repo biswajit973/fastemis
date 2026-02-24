@@ -1,7 +1,8 @@
-import { Component, inject } from '@angular/core';
+import { Component, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
+import { ChatService } from '../../../../core/services/chat.service';
 
 @Component({
   selector: 'app-dashboard-nav',
@@ -16,10 +17,41 @@ import { AuthService } from '../../../../core/services/auth.service';
           FastEMIs
         </a>
       </div>
-      <div>
-        <button (click)="logout()" class="text-sm font-medium text-secondary hover:text-primary transition-standard">
-          Sign Out
+      <div class="relative">
+        <button
+          (click)="toggleProfileMenu()"
+          class="flex items-center gap-3 p-1 rounded-xl hover:bg-surface-2 transition-colors">
+          <div class="hidden sm:block text-right">
+            <div class="text-sm font-bold leading-tight" [ngClass]="isAgent() ? 'text-accent' : 'text-primary'">
+              {{ isAgent() ? 'Agent' : 'User' }}: {{ authService.currentUserSignal()?.fullName || 'Acme Corp' }}
+            </div>
+            <div class="text-xs text-muted">{{ isAgent() ? 'Vendor ID:' : 'User ID:' }} {{ authService.currentUserSignal()?.id || 'MOCK-123' }}</div>
+          </div>
+          <div class="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold font-display shadow-sm border"
+               [ngClass]="isAgent() ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-primary-light/20 text-primary border-primary/20'">
+            {{ getInitials() }}
+          </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-secondary hidden sm:block">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
         </button>
+
+        <div
+          *ngIf="profileMenuOpen"
+          class="absolute right-0 mt-2 w-48 bg-surface border border-border rounded-xl shadow-lg z-50 overflow-hidden">
+          <div class="block sm:hidden px-4 py-3 border-b border-border bg-surface-2">
+            <div class="text-sm font-bold text-primary">{{ authService.currentUserSignal()?.fullName || 'User' }}</div>
+            <div class="text-xs text-secondary mt-0.5">{{ authService.currentUserSignal()?.id }}</div>
+          </div>
+          <a routerLink="/dashboard/profile" (click)="closeMenu()" class="block px-4 py-3 text-sm text-primary hover:bg-surface-2 no-underline transition-colors">
+            Profile Settings
+          </a>
+          <button
+            (click)="logout()"
+            class="w-full text-left px-4 py-3 text-sm text-error hover:bg-error/5 transition-colors border-t border-border font-medium">
+            Sign Out
+          </button>
+        </div>
       </div>
     </nav>
 
@@ -32,7 +64,7 @@ import { AuthService } from '../../../../core/services/auth.service';
       </a>
       <a routerLink="/dashboard/messages" routerLinkActive="text-primary bg-primary-light/10" 
          class="flex flex-col items-center justify-center w-full h-full text-secondary hover:text-primary transition-standard relative">
-        <div class="absolute top-2 right-8 w-2 h-2 bg-error rounded-full block"></div>
+        <div *ngIf="unreadCount() > 0" class="absolute top-2 right-[25%] md:right-8 w-2 h-2 bg-error rounded-full block animate-pulse"></div>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mb-1"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
         <span class="text-[10px] font-medium">Messages</span>
       </a>
@@ -65,9 +97,15 @@ import { AuthService } from '../../../../core/services/auth.service';
            class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-secondary hover:bg-surface-3 transition-standard justify-between">
           <div class="flex items-center gap-3">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-            Messages
+            <span class="relative">
+              Messages
+              <span *ngIf="unreadCount() > 0" class="absolute -top-1 -right-2 flex h-2 w-2">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-error opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-error"></span>
+              </span>
+            </span>
           </div>
-          <span class="bg-error text-white text-[10px] font-bold px-2 py-0.5 rounded-full">New</span>
+          <span *ngIf="unreadCount() > 0" class="bg-error text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">{{ unreadCount() }} New</span>
         </a>
         <a routerLink="/dashboard/profile" routerLinkActive="bg-primary text-white"
            class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-secondary hover:bg-surface-3 transition-standard">
@@ -89,9 +127,48 @@ import { AuthService } from '../../../../core/services/auth.service';
   `
 })
 export class DashboardNavComponent {
-  private authService = inject(AuthService);
+  public authService = inject(AuthService);
+  private chatService = inject(ChatService);
+  private router = inject(Router);
+
+  profileMenuOpen = false;
+  unreadCount = signal<number>(0);
+
+  constructor() {
+    effect(() => {
+      const user = this.authService.currentUserSignal();
+      if (user) {
+        const signalRef = this.chatService.getUnreadSignal(user.id);
+        this.unreadCount.set(signalRef());
+      } else {
+        this.unreadCount.set(0);
+      }
+    }, { allowSignalWrites: true });
+  }
+
+  isAgent(): boolean {
+    return this.authService.currentUserSignal()?.role === 'vendor';
+  }
+
+  getInitials(): string {
+    const name = this.authService.currentUserSignal()?.fullName || 'User';
+    if (this.isAgent()) return 'AC'; // Acme Corp default, or custom
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return name.substring(0, 2).toUpperCase();
+  }
+
+  toggleProfileMenu() {
+    this.profileMenuOpen = !this.profileMenuOpen;
+  }
+
+  closeMenu() {
+    this.profileMenuOpen = false;
+  }
 
   logout() {
     this.authService.logout();
+    this.profileMenuOpen = false;
+    this.router.navigate(['/']);
   }
 }
