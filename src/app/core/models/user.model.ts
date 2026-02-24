@@ -1,0 +1,17 @@
+export interface User {
+    id: string;
+    fullName: string;
+    email: string;
+    role?: 'user' | 'vendor';
+    mobile: string;
+    whatsapp?: string;
+    taxId: string;
+    nationalId: string;
+    token?: string;
+
+    // Agent Control Flags
+    isDisabled?: boolean;
+    activeMarqueeNotice?: string | null;
+    lastLoginAt?: string;
+    assignedAgentName?: string;
+}

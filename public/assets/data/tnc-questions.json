@@ -1,0 +1,42 @@
+[
+    {
+        "id": 1,
+        "question": "Do you confirm that all documents submitted by you are genuine and legally valid?"
+    },
+    {
+        "id": 2,
+        "question": "Do you authorize our verification team to conduct background checks using the provided information?"
+    },
+    {
+        "id": 3,
+        "question": "Do you agree to the specified tenure and the associated monthly EMI deduction from your authorized bank account?"
+    },
+    {
+        "id": 4,
+        "question": "Have you reviewed and understood the late payment penalties and associated charges?"
+    },
+    {
+        "id": 5,
+        "question": "Do you confirm that you are not undergoing any bankruptcy proceedings?"
+    },
+    {
+        "id": 6,
+        "question": "Do you consent to receiving SMS and WhatsApp notifications regarding your EMI schedule?"
+    },
+    {
+        "id": 7,
+        "question": "Do you agree not to transfer or sell the financed asset until the EMI schedule is fully completed?"
+    },
+    {
+        "id": 8,
+        "question": "Do you understand that any default on EMI payments will be reported to credit bureaus like CIBIL?"
+    },
+    {
+        "id": 9,
+        "question": "Have you reviewed that the initial processing fee is non-refundable in cases of cancellation?"
+    },
+    {
+        "id": 10,
+        "question": "Do you accept the full terms and conditions of FastEMIs EMI marketplace policy?"
+    }
+]

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>Fastemis</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0A2540">
+
+  <!-- Add Tailwind CDN for prototyping -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#0A2540',
+            'primary-light': '#1B3F6E',
+            accent: '#00C853',
+            'accent-soft': '#E8F5E9',
+            surface: '#FFFFFF',
+            'surface-2': '#F7F9FC',
+            'surface-3': '#EEF2F7',
+            border: '#DDE3EC',
+            'border-strong': '#C1CCD8',
+            secondary: '#4A5568',
+            muted: '#8896A7',
+            inverse: '#FFFFFF',
+            error: '#E53935',
+            warning: '#F57C00',
+            success: '#00C853',
+          }
+        }
+      }
+    }
+  </script>
+</head>
+
+<body>
+  <app-root></app-root>
+</body>
+
+</html>

@@ -1,0 +1,35 @@
+<div class="app-shell" [class.app-shell--blocked]="introActive()">
+  <app-breadcrumbs></app-breadcrumbs>
+  <router-outlet></router-outlet>
+  <app-toast></app-toast>
+</div>
+
+@if (showOverlay()) {
+<section class="welcome-overlay" [class.welcome-overlay--closing]="overlayClosing()" role="dialog" aria-modal="true"
+  aria-live="polite">
+  <div class="welcome-overlay__ambient" aria-hidden="true"></div>
+
+  <div class="welcome-card">
+    <p class="assistant-label">Fastemis Assistant</p>
+
+    <div class="chat-bubble">
+      <p class="chat-line">{{ typedLineOne() }}</p>
+      <p class="chat-line">{{ typedLineTwo() }}</p>
+      <span class="typing-cursor" [class.typing-cursor--hidden]="!isTyping()">|</span>
+    </div>
+
+    <div class="loader-wrap" aria-hidden="true">
+      <span class="loader-ring"></span>
+      <span class="loader-dot"></span>
+      <span class="loader-dot loader-dot--delay"></span>
+    </div>
+
+    @if (countryDetected()) {
+    <div class="country-card">
+      <p>Country Detected: India 🇮🇳</p>
+      <p>Currency: Indian Rupees (INR)</p>
+    </div>
+    }
+  </div>
+</section>
+}

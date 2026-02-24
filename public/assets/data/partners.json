@@ -1,0 +1,583 @@
+[
+    {
+        "id": "1",
+        "name": "CoinVault Finance",
+        "slug": "coinvault-finance",
+        "status": "active",
+        "rating": 4.9,
+        "review_count": 2847,
+        "tagline": "India's Most Trusted EMI Partner",
+        "max_amount": 200000,
+        "processing_fee": 0,
+        "tenure_options": [
+            6,
+            12,
+            24
+        ],
+        "founded_year": 2017,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#0A2540"
+    },
+    {
+        "id": "2",
+        "name": "SwiftFund Capital",
+        "slug": "swiftfund-capital",
+        "status": "busy",
+        "rating": 4.2,
+        "review_count": 892,
+        "tagline": "Fastest Approvals in Tier 2 Cities",
+        "max_amount": 100000,
+        "processing_fee": 1.5,
+        "tenure_options": [
+            6,
+            9,
+            12
+        ],
+        "founded_year": 2018,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#E53935"
+    },
+    {
+        "id": "3",
+        "name": "CapitalEdge Finance",
+        "slug": "capitaledge-finance",
+        "status": "unavailable",
+        "rating": 4.8,
+        "review_count": 12847,
+        "tagline": "Leading the New Era of Credit",
+        "max_amount": 500000,
+        "processing_fee": 0,
+        "tenure_options": [
+            12,
+            24,
+            36
+        ],
+        "founded_year": 2015,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#1B3F6E"
+    },
+    {
+        "id": "4",
+        "name": "NovaCred",
+        "slug": "novacred",
+        "status": "unavailable",
+        "rating": 3.1,
+        "review_count": 450,
+        "tagline": "Quick Small Ticket Financing",
+        "max_amount": 25000,
+        "processing_fee": 3.5,
+        "tenure_options": [
+            3,
+            6
+        ],
+        "founded_year": 2021,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#00C853"
+    },
+    {
+        "id": "5",
+        "name": "ZenFund",
+        "slug": "zenfund",
+        "status": "unavailable",
+        "rating": 4.5,
+        "review_count": 3200,
+        "tagline": "Peaceful Financing Solutions",
+        "max_amount": 150000,
+        "processing_fee": 2.0,
+        "tenure_options": [
+            6,
+            12,
+            24
+        ],
+        "founded_year": 2019,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#F57C00"
+    },
+    {
+        "id": "6",
+        "name": "Primeland India",
+        "slug": "primeland-india",
+        "status": "unavailable",
+        "rating": 4.7,
+        "review_count": 8840,
+        "tagline": "Premium Financing for Premium Purchases",
+        "max_amount": 300000,
+        "processing_fee": 1.0,
+        "tenure_options": [
+            12,
+            24
+        ],
+        "founded_year": 2016,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#4A5568"
+    },
+    {
+        "id": "7",
+        "name": "TrustBridge Capital",
+        "slug": "trustbridge-capital",
+        "status": "unavailable",
+        "rating": 4.6,
+        "review_count": 5210,
+        "tagline": "Bridging Your Dreams and Reality",
+        "max_amount": 250000,
+        "processing_fee": 0,
+        "tenure_options": [
+            6,
+            12
+        ],
+        "founded_year": 2018,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#1B3F6E"
+    },
+    {
+        "id": "8",
+        "name": "ClearEMI",
+        "slug": "clearemi",
+        "status": "unavailable",
+        "rating": 3.8,
+        "review_count": 1250,
+        "tagline": "No Hidden Fees, Pure Transparency",
+        "max_amount": 50000,
+        "processing_fee": 2.5,
+        "tenure_options": [
+            6,
+            9
+        ],
+        "founded_year": 2020,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#00C853"
+    },
+    {
+        "id": "9",
+        "name": "RapidFund Co",
+        "slug": "rapidfund-co",
+        "status": "unavailable",
+        "rating": 2.8,
+        "review_count": 310,
+        "tagline": "Fast Cash, Fast Approvals",
+        "max_amount": 30000,
+        "processing_fee": 3.0,
+        "tenure_options": [
+            3,
+            6
+        ],
+        "founded_year": 2022,
+        "nbfc_registered": true,
+        "rbi_approved": false,
+        "color": "#E53935"
+    },
+    {
+        "id": "10",
+        "name": "AnchorCredit",
+        "slug": "anchorcredit",
+        "status": "unavailable",
+        "rating": 4.3,
+        "review_count": 2100,
+        "tagline": "Steady Support for Large Purchases",
+        "max_amount": 400000,
+        "processing_fee": 1.0,
+        "tenure_options": [
+            12,
+            24,
+            36
+        ],
+        "founded_year": 2017,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#0A2540"
+    },
+    {
+        "id": "11",
+        "name": "PeakFinance",
+        "slug": "peakfinance",
+        "status": "unavailable",
+        "rating": 4.1,
+        "review_count": 980,
+        "tagline": "Reach the Peak of Financial Freedom",
+        "max_amount": 100000,
+        "processing_fee": 2.0,
+        "tenure_options": [
+            6,
+            12
+        ],
+        "founded_year": 2019,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#F57C00"
+    },
+    {
+        "id": "12",
+        "name": "VelocityLend",
+        "slug": "velocitylend",
+        "status": "unavailable",
+        "rating": 3.5,
+        "review_count": 670,
+        "tagline": "Financing at the Speed of Light",
+        "max_amount": 75000,
+        "processing_fee": 2.5,
+        "tenure_options": [
+            6,
+            9
+        ],
+        "founded_year": 2021,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#1B3F6E"
+    },
+    {
+        "id": "13",
+        "name": "CoreFund",
+        "slug": "corefund",
+        "status": "unavailable",
+        "rating": 4.4,
+        "review_count": 1850,
+        "tagline": "Strong Foundations for Your Needs",
+        "max_amount": 200000,
+        "processing_fee": 1.5,
+        "tenure_options": [
+            12,
+            24
+        ],
+        "founded_year": 2016,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#4A5568"
+    },
+    {
+        "id": "14",
+        "name": "StellarCredit India",
+        "slug": "stellarcredit",
+        "status": "unavailable",
+        "rating": 4.9,
+        "review_count": 9500,
+        "tagline": "Out of this World Credit Solutions",
+        "max_amount": 500000,
+        "processing_fee": 0,
+        "tenure_options": [
+            12,
+            24,
+            36
+        ],
+        "founded_year": 2015,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#0A2540"
+    },
+    {
+        "id": "15",
+        "name": "ApexBridge",
+        "slug": "apexbridge",
+        "status": "unavailable",
+        "rating": 3.9,
+        "review_count": 1150,
+        "tagline": "Peak Connections, Top Tier Credit",
+        "max_amount": 150000,
+        "processing_fee": 2.0,
+        "tenure_options": [
+            6,
+            12
+        ],
+        "founded_year": 2018,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#00C853"
+    },
+    {
+        "id": "16",
+        "name": "FundForward",
+        "slug": "fundforward",
+        "status": "unavailable",
+        "rating": 4.5,
+        "review_count": 3400,
+        "tagline": "Moving Your Goals Forward",
+        "max_amount": 250000,
+        "processing_fee": 1.0,
+        "tenure_options": [
+            12,
+            24
+        ],
+        "founded_year": 2017,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#1B3F6E"
+    },
+    {
+        "id": "17",
+        "name": "EasyCredit Hub",
+        "slug": "easycredit-hub",
+        "status": "unavailable",
+        "rating": 4.2,
+        "review_count": 2200,
+        "tagline": "Simple. Transparent. Easy.",
+        "max_amount": 100000,
+        "processing_fee": 1.5,
+        "tenure_options": [
+            6,
+            12
+        ],
+        "founded_year": 2019,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#F57C00"
+    },
+    {
+        "id": "18",
+        "name": "MoneyAxis",
+        "slug": "moneyaxis",
+        "status": "unavailable",
+        "rating": 3.6,
+        "review_count": 890,
+        "tagline": "Centering Your Financial Strategy",
+        "max_amount": 80000,
+        "processing_fee": 2.5,
+        "tenure_options": [
+            6,
+            9
+        ],
+        "founded_year": 2020,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#E53935"
+    },
+    {
+        "id": "19",
+        "name": "SwiftCapital Pro",
+        "slug": "swiftcapital-pro",
+        "status": "unavailable",
+        "rating": 4.7,
+        "review_count": 6120,
+        "tagline": "Professional Finance, Swiftly Delivered",
+        "max_amount": 350000,
+        "processing_fee": 0.5,
+        "tenure_options": [
+            12,
+            24
+        ],
+        "founded_year": 2016,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#0A2540"
+    },
+    {
+        "id": "20",
+        "name": "TrueFinance",
+        "slug": "truefinance",
+        "status": "unavailable",
+        "rating": 4.1,
+        "review_count": 1400,
+        "tagline": "Honest Credit for Honest Needs",
+        "max_amount": 120000,
+        "processing_fee": 1.5,
+        "tenure_options": [
+            6,
+            12
+        ],
+        "founded_year": 2018,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#4A5568"
+    },
+    {
+        "id": "21",
+        "name": "LendRight",
+        "slug": "lendright",
+        "status": "unavailable",
+        "rating": 4.0,
+        "review_count": 1050,
+        "tagline": "Doing EMI the Right Way",
+        "max_amount": 90000,
+        "processing_fee": 2.0,
+        "tenure_options": [
+            6,
+            9,
+            12
+        ],
+        "founded_year": 2019,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#1B3F6E"
+    },
+    {
+        "id": "22",
+        "name": "SecureEMI",
+        "slug": "secureemi",
+        "status": "unavailable",
+        "rating": 4.8,
+        "review_count": 7800,
+        "tagline": "Safe, Secure, Sound Financing",
+        "max_amount": 400000,
+        "processing_fee": 0,
+        "tenure_options": [
+            12,
+            24,
+            36
+        ],
+        "founded_year": 2015,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#00C853"
+    },
+    {
+        "id": "23",
+        "name": "BrightFund India",
+        "slug": "brightfund",
+        "status": "unavailable",
+        "rating": 4.3,
+        "review_count": 2750,
+        "tagline": "Illuminating Your Credit Path",
+        "max_amount": 180000,
+        "processing_fee": 1.0,
+        "tenure_options": [
+            6,
+            12,
+            24
+        ],
+        "founded_year": 2017,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#F57C00"
+    },
+    {
+        "id": "24",
+        "name": "NexusCredit",
+        "slug": "nexuscredit",
+        "status": "unavailable",
+        "rating": 3.7,
+        "review_count": 920,
+        "tagline": "Connecting the Dots of Finance",
+        "max_amount": 100000,
+        "processing_fee": 2.5,
+        "tenure_options": [
+            6,
+            12
+        ],
+        "founded_year": 2020,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#1B3F6E"
+    },
+    {
+        "id": "25",
+        "name": "PrimePath Finance",
+        "slug": "primepath",
+        "status": "unavailable",
+        "rating": 4.6,
+        "review_count": 4100,
+        "tagline": "The Premier Path to Ownership",
+        "max_amount": 250000,
+        "processing_fee": 0.5,
+        "tenure_options": [
+            12,
+            24
+        ],
+        "founded_year": 2016,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#0A2540"
+    },
+    {
+        "id": "26",
+        "name": "TrustLine Capital",
+        "slug": "trustline",
+        "status": "unavailable",
+        "rating": 4.4,
+        "review_count": 3150,
+        "tagline": "The Line of Trust You Can Rely On",
+        "max_amount": 200000,
+        "processing_fee": 1.0,
+        "tenure_options": [
+            6,
+            12,
+            24
+        ],
+        "founded_year": 2018,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#4A5568"
+    },
+    {
+        "id": "27",
+        "name": "ClearPath EMI",
+        "slug": "clearpath",
+        "status": "unavailable",
+        "rating": 4.2,
+        "review_count": 1800,
+        "tagline": "Clearing the Path to Your Purchases",
+        "max_amount": 150000,
+        "processing_fee": 1.5,
+        "tenure_options": [
+            6,
+            12
+        ],
+        "founded_year": 2019,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#00C853"
+    },
+    {
+        "id": "28",
+        "name": "QuickBridge",
+        "slug": "quickbridge",
+        "status": "unavailable",
+        "rating": 3.4,
+        "review_count": 550,
+        "tagline": "Bridging Gaps Fast",
+        "max_amount": 60000,
+        "processing_fee": 3.0,
+        "tenure_options": [
+            3,
+            6
+        ],
+        "founded_year": 2021,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#E53935"
+    },
+    {
+        "id": "29",
+        "name": "SolidFund",
+        "slug": "solidfund",
+        "status": "unavailable",
+        "rating": 4.9,
+        "review_count": 11200,
+        "tagline": "Solid Support for Major Investments",
+        "max_amount": 500000,
+        "processing_fee": 0,
+        "tenure_options": [
+            12,
+            24,
+            36
+        ],
+        "founded_year": 2015,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#0A2540"
+    },
+    {
+        "id": "30",
+        "name": "EliteEMI",
+        "slug": "eliteemi",
+        "status": "unavailable",
+        "rating": 4.5,
+        "review_count": 3900,
+        "tagline": "Elite Credit Protocols",
+        "max_amount": 300000,
+        "processing_fee": 0.5,
+        "tenure_options": [
+            12,
+            24
+        ],
+        "founded_year": 2017,
+        "nbfc_registered": true,
+        "rbi_approved": true,
+        "color": "#1B3F6E"
+    }
+]

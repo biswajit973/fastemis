@@ -1,0 +1,16 @@
+{
+    "name": "FastEMIs",
+    "short_name": "FastEMIs",
+    "theme_color": "#0A2540",
+    "background_color": "#F7F9FC",
+    "display": "standalone",
+    "scope": "/",
+    "start_url": "/",
+    "icons": [
+        {
+            "src": "favicon.ico",
+            "sizes": "192x192 512x512",
+            "type": "image/x-icon"
+        }
+    ]
+}

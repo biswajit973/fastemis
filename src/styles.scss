@@ -1,0 +1,14 @@
+/* You can add global styles to this file, and also import other style files */
+
+@import 'styles/variables';
+@import 'styles/animations';
+@import 'styles/typography';
+@import 'styles/layout';
+@import 'styles/components';
+@import 'styles/utilities';
+
+/* Push bottom sheets and overlays if needed, but sticky elements mainly */
+.welcome-overlay {
+    z-index: 1000 !important;
+    /* ensure it stays supreme */
+}

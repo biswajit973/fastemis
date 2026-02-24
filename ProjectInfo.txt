@@ -1,0 +1,59 @@
+# FastEMIs - Project Information & Handoff Document
+
+## 1. Project Overview & Goal
+**FastEMIs** is a B2B2C Point-of-Sale (POS) finance web platform built with Angular 18.
+The goal of the project is to provide a seamless, white-labeled experience for retail customers to apply for instant EMIs (loans) while checking out at various partner stores (e.g., Apple, Samsung, Croma). 
+
+The platform supports a full end-to-end flow: browsing partners, viewing partner-specific offerings, applying for a loan (multi-step KYC), and a real-time dashboard to manage the application status (Background Verification, Agreement Signing, Advance Payment, and Disbursal).
+
+## 2. Tech Stack & Architecture
+- **Framework:** Angular 18 (Standalone Components strongly preferred over NgModules)
+- **Styling:** Tailwind CSS + Custom SCSS variables (`src/styles.scss` & `tailwind.config.js`). 
+  - *CRITICAL NOTE:* Due to local `npm` cache permission errors (`EPERM`) on the user's machine, we temporarily injected Tailwind CSS via CDN inside `src/index.html`. 
+- **State Management:** Angular Signals (`signal<T>`) are entirely preferred over RxJS `BehaviorSubject` for synchronous component state. RxJS is strictly used for HTTP calls and async operations.
+- **Mock Backend:** The app runs entirely offline using `src/app/core/interceptors/mock-api.interceptor.ts`. It intercepts `/api/*` calls, fakes a 500ms network delay, and returns mock HTTP responses.
+- **Static Assets:** Mock JSON data (like `partners.json` and `tnc-questions.json`) is stored in `public/assets/data/` (In Angular 18, `public/` replaces the old `src/assets/` folder).
+
+## 3. Core Features & Components Built
+### Public Pages
+- **Navbar:** Sticky navigation with dynamic branding based on the active partner.
+- **Home Component (`/`):** Includes Hero, Stats, How It Works, Partner Grid, Trust Signals, and FAQ sections.
+- **Location Dialog Modal:** Prompts the user to confirm their location before proceeding to a partner page.
+
+### Partner Detail Page (`/partner/:slug`)
+- Dynamic theming (colors apply globally via CSS variables based on the selected partner).
+- Displays partner-specific offerings, mocked 4.5+ star reviews, and FAQs.
+
+### Loan Application Flow (`/apply`)
+A reactive multi-step wizard:
+- Step 1: Personal Information
+- Step 2: Address Details
+- Step 3: KYC Documents (PAN / Aadhaar validation)
+- Step 4: Employment & Loan Details
+- Step 5: Account Security (OTP & Password generation)
+
+### User Dashboard (`/dashboard`)
+The command center for users post-application:
+- **Status Tracker:** A visual stepper showing the journey from Submitted -> Verified -> Disbursed.
+- **BGV Card:** Simulates a Background Verification check.
+- **Agreement Card:** Prompts the user to sign the Terms & Conditions. Fully full-screen overlay component.
+- **Payment Card:** Handles the first advance EMI payment. Features a live Countdown Timer component (expects `string | Date`) and an Upload screenshot zone.
+- **Completion Card:** Displays the final loan schedule once disbursed.
+
+### Messaging System (`/dashboard/messages`)
+- A WhatsApp-style live chat interface.
+- Includes a polling interval simulating external "System" messages (e.g., "Credit bureau match successful!").
+
+## 4. Important Notes & Fixes for Future Agents (READ THIS!)
+1. **NPM Installations:** The host machine has severe `EPERM` issues inside `/Users/biswajitpanda/.npm` and `node_modules`. **Do not attempt to run `npm install`** without explicit user permission. It will fail. Stick to coding fixes instead of installing new packages whenever possible.
+2. **TypeScript Strictness:** Strict mode is enabled. Be very careful with `null` / `undefined` checks, especially when mapping HTTP responses or reading Angular `signal()` values (e.g., `application()?.status`).
+3. **Data Fetching:** 
+   - `MockApiInterceptor` intercepts all `/api/` calls.
+   - If an API fails (like `/api/partners`), the `PartnerService` gracefully falls back to fetching `public/assets/data/partners.json` directly using `HttpClient`.
+   - Ensure you use `HttpClient` directly without `ApiService` for static local JSON files, otherwise the URL will accidentally become `/api/assets/...`.
+4. **Angular 18 specific patterns:**
+   - Use `@Component({ standalone: true, imports: [...] })` for everything.
+   - Use `@Input()`, `@Output()` signals and standard properties.
+   - Global styles should define CSS variables (`--primary`, `--surface`) that Tailwind consumes. 
+
+*(Last updated: February 2026)*

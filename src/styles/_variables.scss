@@ -1,0 +1,40 @@
+/* ==========================================================================
+   CSS Custom Properties (Variables)
+   ========================================================================== */
+
+:root {
+  // Colors
+  --primary: #0A2540;          // Deep Navy - trust, authority
+  --primary-light: #1B3F6E;    // Lighter navy for hover states
+  --accent: #00C853;           // Emerald Green - success, money, go
+  --accent-soft: #E8F5E9;      // Light green backgrounds
+  --surface: #FFFFFF;          // Cards, modals
+  --surface-2: #F7F9FC;        // Page backgrounds
+  --surface-3: #EEF2F7;        // Input backgrounds
+  --border: #DDE3EC;           // Subtle borders
+  --border-strong: #C1CCD8;    // Active borders
+  
+  // Text Colors
+  --text-primary: #0A2540;     // Same as brand - unified
+  --text-secondary: #4A5568;   // Body text
+  --text-muted: #8896A7;       // Placeholders, captions
+  --text-inverse: #FFFFFF;     // On dark backgrounds
+  
+  // Status Colors
+  --error: #E53935;            // Errors
+  --warning: #F57C00;          // Warnings
+  --success: #00C853;          // Success
+  
+  // Shadows
+  // Using rgba with deep navy (#0A2540) to make shadows feel integrated
+  --shadow-sm: 0 1px 3px rgba(10,37,64,0.06), 0 1px 2px rgba(10,37,64,0.04);
+  --shadow-md: 0 4px 12px rgba(10,37,64,0.08), 0 2px 4px rgba(10,37,64,0.04);
+  --shadow-lg: 0 8px 24px rgba(10,37,64,0.10), 0 4px 8px rgba(10,37,64,0.04);
+  --shadow-card: 0 2px 8px rgba(10,37,64,0.07);
+  
+  // Border Radius
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+}
