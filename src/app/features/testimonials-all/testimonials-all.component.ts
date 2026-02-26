@@ -28,59 +28,91 @@ interface TestimonialVideo {
           </p>
         </header>
 
-        <div class="flex items-center justify-between mb-4 w-full px-2 md:px-0">
-            <button
-              type="button"
-              (click)="toggleGlobalMarquee()"
-              class="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2 text-sm font-semibold text-primary hover:border-primary/50 transition-colors shadow-sm">
-              <svg *ngIf="!globalMarqueePaused" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <rect x="6" y="4" width="4" height="16" rx="1"></rect>
-                <rect x="14" y="4" width="4" height="16" rx="1"></rect>
-              </svg>
-              <svg *ngIf="globalMarqueePaused" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M8 5v14l11-7z"></path>
-              </svg>
-              {{ globalMarqueePaused ? 'Resume Scroll' : 'Pause Scroll' }}
-            </button>
+        <div class="flex flex-col md:flex-row items-center justify-between mb-8 w-full px-2 md:px-0 gap-6">
             
-            <div class="flex items-center gap-2">
-              <button
-                type="button"
-                (mousedown)="startScrub(-1)"
-                (mouseup)="stopScrub()"
-                (mouseleave)="stopScrub()"
-                (touchstart)="startScrub(-1)"
-                (touchend)="stopScrub()"
-                class="w-10 h-10 rounded-full border border-border bg-surface text-primary shadow-sm flex items-center justify-center hover:bg-surface-3 transition-colors active:scale-95 touch-manipulation"
-                aria-label="Scroll left quickly">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
-              </button>
+            <!-- Video Sending Guidelines -->
+            <div class="flex-1 bg-surface-3/50 rounded-2xl p-4 md:p-5 border border-border/50 shadow-sm w-full">
+              <div class="flex items-center gap-2 mb-2">
+                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-accent">
+                   <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                   <line x1="12" y1="9" x2="12" y2="13"></line>
+                   <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                 </svg>
+                 <h3 class="font-bold text-primary font-display text-lg tracking-tight">Video Sending Notes</h3>
+              </div>
+              <ul class="space-y-2 text-sm text-secondary font-medium">
+                <li class="flex items-start gap-2">
+                  <span class="text-accent shrink-0 mt-0.5">•</span>
+                  <span><strong>Show The Box:</strong> Ensure the FastEMIs delivery packaging box is clearly visible in the video frame.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                   <span class="text-accent shrink-0 mt-0.5">•</span>
+                   <span><strong>Language:</strong> Please try to record your testimonial in English. Non-English videos will be muted and overdubbed by our team.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                   <span class="text-accent shrink-0 mt-0.5">•</span>
+                   <span><strong>File Restrictions:</strong> Please do not send large files. Videos must be under <strong>100 MB</strong> and recorded using your front camera in portrait mode.</span>
+                </li>
+              </ul>
+            </div>
+
+            <div class="flex flex-col items-end gap-4 shrink-0">
                <button
-                type="button"
-                (mousedown)="startScrub(1)"
-                (mouseup)="stopScrub()"
-                (mouseleave)="stopScrub()"
-                (touchstart)="startScrub(1)"
-                (touchend)="stopScrub()"
-                class="w-10 h-10 rounded-full border border-border bg-surface text-primary shadow-sm flex items-center justify-center hover:bg-surface-3 transition-colors active:scale-95 touch-manipulation"
-                aria-label="Scroll right quickly">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
-              </button>
+                 type="button"
+                 (click)="toggleGlobalMarquee()"
+                 class="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2 text-sm font-semibold text-primary hover:border-primary/50 transition-colors shadow-sm">
+                 <svg *ngIf="!globalMarqueePaused" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                   <rect x="6" y="4" width="4" height="16" rx="1"></rect>
+                   <rect x="14" y="4" width="4" height="16" rx="1"></rect>
+                 </svg>
+                 <svg *ngIf="globalMarqueePaused" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                   <path d="M8 5v14l11-7z"></path>
+                 </svg>
+                 {{ globalMarqueePaused ? 'Resume Scroll' : 'Pause Scroll' }}
+               </button>
+               
+               <div class="flex items-center gap-2">
+                 <button
+                   type="button"
+                   (click)="scrollToPrev()"
+                   class="w-12 h-12 rounded-full border border-border bg-surface text-primary shadow-sm flex items-center justify-center hover:bg-surface-3 transition-colors active:scale-95 touch-manipulation"
+                   aria-label="Previous Video">
+                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                 </button>
+                  <button
+                   type="button"
+                   (click)="scrollToNext()"
+                   class="w-12 h-12 rounded-full border border-border bg-surface text-primary shadow-sm flex items-center justify-center hover:bg-surface-3 transition-colors active:scale-95 touch-manipulation"
+                   aria-label="Next Video">
+                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                 </button>
+               </div>
             </div>
         </div>
 
         <div
           #scrollContainer
-          class="relative w-[100vw] left-1/2 -translate-x-1/2 overflow-x-auto no-scrollbar select-none cursor-grab active:cursor-grabbing pb-8"
+          class="relative w-[100vw] left-1/2 -translate-x-1/2 overflow-x-auto no-scrollbar select-none cursor-grab active:cursor-grabbing pb-8 min-h-[400px]"
           (mouseenter)="setHoverPaused(true)"
           (mouseleave)="setHoverPaused(false)"
           (touchstart)="setHoverPaused(true)"
           (touchend)="setHoverPaused(false)"
           (wheel)="onWheel($event)"
           >
-          <div class="flex items-center gap-4 md:gap-6 min-w-max px-[50vw]">
+          
+          <!-- Pre-flight Validation Loader -->
+          <div *ngIf="isLoading()" class="absolute inset-0 flex flex-col items-center justify-center z-50">
+             <div class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4"></div>
+             <div class="text-primary font-semibold text-lg animate-pulse">Checking Media Integrity...</div>
+             <div class="text-secondary text-sm mb-4">{{ loadingProgress() }}% Verified</div>
+             <div class="w-64 h-1.5 bg-surface-3 rounded-full overflow-hidden">
+                <div class="h-full bg-primary transition-all duration-300 ease-out" [style.width.%]="loadingProgress()"></div>
+             </div>
+          </div>
+
+          <div class="flex items-center gap-4 md:gap-6 min-w-max px-[50vw]" *ngIf="!isLoading()">
             <article
-              *ngFor="let item of marqueeVideos; trackBy: trackByUniqueId"
+              *ngFor="let item of marqueeVideos(); trackBy: trackByUniqueId"
               class="relative flex-none w-[260px] sm:w-[300px] md:w-[320px] aspect-[4/5] rounded-[2rem] overflow-hidden bg-surface-3 shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-border/50 group"
               [class.ring-2]="playingState()[item.uniqueId || '']"
               [class.ring-primary]="playingState()[item.uniqueId || '']"
@@ -196,37 +228,81 @@ export class TestimonialsAllComponent implements OnInit, AfterViewInit, OnDestro
     { id: 't3', fileUrl: '/mediaFiles/customervideos/abhilash.mp4' },
     { id: 't4', fileUrl: '/mediaFiles/customervideos/monica.mp4' },
     { id: 't5', fileUrl: '/mediaFiles/customervideos/ritika.mp4' },
-    { id: 't6', fileUrl: '/mediaFiles/customervideos/sreekanth.mp4' }
+    { id: 't6', fileUrl: '/mediaFiles/customervideos/sreekanth.mp4' },
+    { id: 't7', fileUrl: '/mediaFiles/customervideos/Damayanti Nayak.mp4' },
+    { id: 't8', fileUrl: '/mediaFiles/customervideos/Jayakrishna Goswami.mp4' },
+    { id: 't9', fileUrl: '/mediaFiles/customervideos/Maya Sa.mp4' },
+    { id: 't10', fileUrl: '/mediaFiles/customervideos/Nayan Sharma.mp4' },
+    { id: 't11', fileUrl: '/mediaFiles/customervideos/Padmanava Rao.mp4' },
+    { id: 't12', fileUrl: '/mediaFiles/customervideos/Preetam Das.mp4' },
+    { id: 't13', fileUrl: '/mediaFiles/customervideos/Rohit.mp4' },
+    { id: 't14', fileUrl: '/mediaFiles/customervideos/josephKerala.mp4' },
+    { id: 't15', fileUrl: '/mediaFiles/customervideos/payal Khemka.mp4' },
+    { id: 't16', fileUrl: '/mediaFiles/customervideos/subhaprada.mp4' }
   ];
 
-  // Duplicate the array many times to create a long continuous loop feel
-  readonly marqueeVideos: TestimonialVideo[] = Array(12).fill(this.rawVideos).flat().map((v, i) => ({
-    ...v,
-    uniqueId: `${v.id}-${i}`
-  }));
-
+  readonly marqueeVideos = signal<TestimonialVideo[]>([]);
   readonly playingState = signal<Record<string, boolean>>({});
   readonly mutedState = signal<Record<string, boolean>>({});
   readonly videoReady = signal<Record<string, boolean>>({});
 
-  ngOnInit(): void {
+  readonly isLoading = signal<boolean>(true);
+  readonly loadingProgress = signal<number>(0);
+
+  async ngOnInit(): Promise<void> {
     this.enableInteractionGuards();
+
+    const validRaw: TestimonialVideo[] = [];
+    let checked = 0;
+
+    // Valiudate videos over network pre-flight
+    for (const v of this.rawVideos) {
+      try {
+        const response = await fetch(v.fileUrl, { method: 'HEAD' });
+        if (response.ok) {
+          validRaw.push(v);
+        }
+      } catch (e) {
+        // Silently fail, do not include invalid or deleted files
+      }
+      checked++;
+      this.loadingProgress.set(Math.round((checked / this.rawVideos.length) * 100));
+    }
+
+    // Duplicate the validated array many times to create a long continuous loop feel
+    const finalMarquee = validRaw.length > 0
+      ? Array(12).fill(validRaw).flat().map((v, i) => ({ ...v, uniqueId: `${v.id}-${i}` }))
+      : [];
 
     // Initialize state
     const initialMuted: Record<string, boolean> = {};
     const initialPlaying: Record<string, boolean> = {};
     const initialReady: Record<string, boolean> = {};
-    this.marqueeVideos.forEach(v => {
+
+    finalMarquee.forEach(v => {
       initialMuted[v.uniqueId!] = true;
       initialPlaying[v.uniqueId!] = false;
       initialReady[v.uniqueId!] = false;
     });
+
     this.mutedState.set(initialMuted);
     this.playingState.set(initialPlaying);
     this.videoReady.set(initialReady);
+
+    this.marqueeVideos.set(finalMarquee);
+    this.isLoading.set(false);
+
+    // Safely trigger post-view initialization after DOM updates
+    setTimeout(() => {
+      this.initializeVideoElements();
+    }, 100);
   }
 
   ngAfterViewInit(): void {
+    // Initialized gracefully via setTimeout in ngOnInit to handle async DOM construction
+  }
+
+  private initializeVideoElements(): void {
     this.videoEls.forEach(ref => {
       const video = ref.nativeElement;
       video.controls = false;
@@ -280,12 +356,63 @@ export class TestimonialsAllComponent implements OnInit, AfterViewInit, OnDestro
     this.hoverPaused = paused;
   }
 
-  startScrub(direction: number): void {
-    this.scrubDirection = direction;
+  scrollToNext(): void {
+    const container = this.scrollContainerEls.first?.nativeElement;
+    if (!container) return;
+
+    // Find the first video article that is currently fully OR partially visible on the right side of the center
+    const articles = Array.from(container.querySelectorAll('article')) as HTMLElement[];
+    const centerPoint = container.scrollLeft + (container.clientWidth / 2);
+
+    const nextArticle = articles.find(article => {
+      const articleCenter = article.offsetLeft + (article.clientWidth / 2);
+      return articleCenter > centerPoint + 50; // Add 50px buffer to ensure we pick the NEXT one
+    });
+
+    if (nextArticle) {
+      this.centerVideoInViewport(nextArticle.querySelector('video') as HTMLVideoElement);
+      this.autoPlayCenteredVideo(nextArticle);
+    }
   }
 
-  stopScrub(): void {
-    this.scrubDirection = 0;
+  scrollToPrev(): void {
+    const container = this.scrollContainerEls.first?.nativeElement;
+    if (!container) return;
+
+    // Find the first video article that is currently fully OR partially visible on the left side of the center
+    const articles = Array.from(container.querySelectorAll('article')) as HTMLElement[];
+    const centerPoint = container.scrollLeft + (container.clientWidth / 2);
+
+    // Search backwards to find the closest one to the left
+    const prevArticle = [...articles].reverse().find(article => {
+      const articleCenter = article.offsetLeft + (article.clientWidth / 2);
+      return articleCenter < centerPoint - 50;
+    });
+
+    if (prevArticle) {
+      this.centerVideoInViewport(prevArticle.querySelector('video') as HTMLVideoElement);
+      this.autoPlayCenteredVideo(prevArticle);
+    }
+  }
+
+  private autoPlayCenteredVideo(article: HTMLElement): void {
+    const video = article.querySelector('video') as HTMLVideoElement;
+    if (!video) return;
+
+    const uid = video.dataset['uid'];
+    if (!uid) return;
+
+    this.pauseAllExcept(uid);
+    this.muteAllExcept(uid);
+
+    this.globalMarqueePaused = true;
+    this.activeVideoPaused = true;
+
+    video.muted = false;
+    this.mutedState.update(prev => ({ ...prev, [uid]: false }));
+
+    void video.play().catch(() => { });
+    this.playingState.update(prev => ({ ...prev, [uid]: true }));
   }
 
   onWheel(event: WheelEvent): void {

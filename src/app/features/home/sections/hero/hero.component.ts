@@ -108,41 +108,53 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
         <div class="flex-1 relative w-full h-[32rem] scale-in hidden md:block">
           <div class="hero-carousel-container" (mouseenter)="pauseAutoPlay()" (mouseleave)="resumeAutoPlay()">
             
-            <article *ngFor="let vid of heroVideos; let i = index" class="hero-carousel-video" [class.is-active]="activeIndex() === i">
-              <!-- Video Element -->
-              <video
-                #heroVideoEl
-                [attr.data-id]="vid.id"
-                [src]="vid.fileUrl"
-                class="w-full h-full object-cover pointer-events-none"
-                preload="metadata"
-                playsinline
-                [loop]="false"
-                [muted]="mutedState()[vid.id]"
-                [disablePictureInPicture]="true"
-                [attr.disableRemotePlayback]="'true'"
-                [attr.controlsList]="'nodownload nofullscreen noplaybackrate'"
-                (contextmenu)="$event.preventDefault()"
-                (ended)="onVideoEnded(i)">
-              </video>
+            <!-- Pre-flight Validation Loader -->
+            <div *ngIf="isLoading()" class="absolute inset-0 flex flex-col items-center justify-center bg-surface-2 z-50">
+               <div class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4"></div>
+               <div class="text-primary font-semibold text-lg animate-pulse">Checking Media Integrity...</div>
+               <div class="text-secondary text-sm mb-4">{{ loadingProgress() }}% Verified</div>
+               <div class="w-48 h-1.5 bg-surface-3 rounded-full overflow-hidden">
+                  <div class="h-full bg-primary transition-all duration-300 ease-out" [style.width.%]="loadingProgress()"></div>
+               </div>
+            </div>
 
-              <!-- Gradient Fade over Video Content for text legibility -->
-              <div class="absolute inset-x-0 bottom-0 h-[60%] bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none z-10 transition-opacity"></div>
-              
-              <!-- Transparent Bottom Cover (Matches Background surface) to blend into UI -->
-              <div class="hero-carousel-fade-bottom absolute inset-x-0 bottom-0 h-32 z-10"></div>
+            <ng-container *ngFor="let vid of validVideos(); let i = index">
+              <article class="hero-carousel-video" [class.is-active]="activeIndex() === i">
+                <!-- Video Element -->
+                <video
+                  #heroVideoEl
+                  [attr.data-id]="vid.id"
+                  [src]="vid.fileUrl"
+                  class="w-full h-full object-cover pointer-events-none"
+                  preload="metadata"
+                  playsinline
+                  [loop]="false"
+                  [muted]="mutedState()[vid.id]"
+                  [disablePictureInPicture]="true"
+                  [attr.disableRemotePlayback]="'true'"
+                  [attr.controlsList]="'nodownload nofullscreen noplaybackrate'"
+                  (contextmenu)="$event.preventDefault()"
+                  (ended)="onVideoEnded(i)">
+                </video>
 
-              <!-- Information Overlay -->
-              <div class="absolute bottom-6 left-6 right-6 z-20 pointer-events-none flex flex-col gap-3">
-                 <div class="flex items-center gap-3">
-                    <div class="flex flex-col">
-                        <span class="text-white font-semibold text-lg drop-shadow-md leading-tight">{{ vid.name }}</span>
-                        <span class="text-white/70 font-medium text-[11px] drop-shadow-md uppercase tracking-wider">Verified Customer</span>
-                    </div>
+                <!-- Gradient Fade over Video Content for text legibility -->
+                <div class="absolute inset-x-0 bottom-0 h-[60%] bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none z-10 transition-opacity"></div>
+                
+                <!-- Transparent Bottom Cover (Matches Background surface) to blend into UI -->
+                <div class="hero-carousel-fade-bottom absolute inset-x-0 bottom-0 h-32 z-10"></div>
+
+                <!-- Information Overlay -->
+                <div class="absolute bottom-6 left-6 right-6 z-20 pointer-events-none flex flex-col gap-3">
+                   <div class="flex items-center gap-3">
+                      <div class="flex flex-col">
+                          <span class="text-white font-semibold text-lg drop-shadow-md leading-tight">{{ vid.name }}</span>
+                          <span class="text-white/70 font-medium text-[11px] drop-shadow-md uppercase tracking-wider">Verified Customer</span>
+                      </div>
+                  </div>
+                  <p class="text-white/90 text-sm md:text-base leading-relaxed drop-shadow-sm font-medium">"{{ vid.quote }}"</p>
                 </div>
-                <p class="text-white/90 text-sm md:text-base leading-relaxed drop-shadow-sm font-medium">"{{ vid.quote }}"</p>
-              </div>
-            </article>
+              </article>
+            </ng-container>
 
             <!-- Central Play/Pause Toggle -->
             <button
@@ -203,14 +215,28 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
 export class HomeHeroComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChildren('heroVideoEl') private videoEls!: QueryList<ElementRef<HTMLVideoElement>>;
 
-  readonly heroVideos = [
+  private readonly rawHeroVideos = [
     { id: 'h1', fileUrl: '/mediaFiles/customervideos/Ratikanta.mp4', name: 'Ratikanta M.', quote: 'The instant EMI process entirely online changed everything. No branch visits!' },
     { id: 'h2', fileUrl: '/mediaFiles/customervideos/monica.mp4', name: 'Monica S.', quote: 'Approved in 5 minutes and I bought my MacBook immediately. Flawless.' },
     { id: 'h3', fileUrl: '/mediaFiles/customervideos/sreekanth.mp4', name: 'Sreekanth P.', quote: 'No waiting lines! FastEMIs connected me to the best partner seamlessly.' },
     { id: 'h4', fileUrl: '/mediaFiles/customervideos/ritika.mp4', name: 'Ritika K.', quote: 'The transparent fees and instant approval saved me so much hassle.' },
     { id: 'h5', fileUrl: '/mediaFiles/customervideos/Rudra.mp4', name: 'Rudra T.', quote: 'I was skeptical, but the zero hidden fees part is 100% real!' },
-    { id: 'h6', fileUrl: '/mediaFiles/customervideos/abhilash.mp4', name: 'Abhilash D.', quote: 'Finally, a platform that understands modern retail financing.' }
+    { id: 'h6', fileUrl: '/mediaFiles/customervideos/abhilash.mp4', name: 'Abhilash D.', quote: 'Finally, a platform that understands modern retail financing.' },
+    { id: 'h7', fileUrl: '/mediaFiles/customervideos/Damayanti Nayak.mp4', name: 'Damayanti N.', quote: 'Super fast approval and great customer service. Highly recommended!' },
+    { id: 'h8', fileUrl: '/mediaFiles/customervideos/Jayakrishna Goswami.mp4', name: 'Jayakrishna G.', quote: 'I got my mobile phone on EMI without a credit card. Amazing service.' },
+    { id: 'h9', fileUrl: '/mediaFiles/customervideos/Maya Sa.mp4', name: 'Maya S.', quote: 'The whole process is paperless and very straightforward. Thank you FastEMIs.' },
+    { id: 'h10', fileUrl: '/mediaFiles/customervideos/Nayan Sharma.mp4', name: 'Nayan S.', quote: 'Flexible repayment options made my large purchase very easy to manage.' },
+    { id: 'h11', fileUrl: '/mediaFiles/customervideos/Padmanava Rao.mp4', name: 'Padmanava R.', quote: 'Trustworthy and transparent. I will definitely use this again.' },
+    { id: 'h12', fileUrl: '/mediaFiles/customervideos/Preetam Das.mp4', name: 'Preetam D.', quote: 'Checked my eligibility in seconds. The quickest loan processing ever.' },
+    { id: 'h13', fileUrl: '/mediaFiles/customervideos/Rohit.mp4', name: 'Rohit K.', quote: 'Upgraded my home appliances with zero down payment. Brilliant.' },
+    { id: 'h14', fileUrl: '/mediaFiles/customervideos/josephKerala.mp4', name: 'Joseph K.', quote: 'Very impressed with the security and the speed of disbursement.' },
+    { id: 'h15', fileUrl: '/mediaFiles/customervideos/payal Khemka.mp4', name: 'Payal K.', quote: 'The interface is beautiful and so simple to navigate.' },
+    { id: 'h16', fileUrl: '/mediaFiles/customervideos/subhaprada.mp4', name: 'Subhaprada P.', quote: 'I recommend FastEMIs to all my friends. Truly the future of payments.' }
   ];
+
+  readonly validVideos = signal<any[]>([]);
+  readonly isLoading = signal<boolean>(true);
+  readonly loadingProgress = signal<number>(0);
 
   readonly activeIndex = signal<number>(0);
   readonly mutedState = signal<Record<string, boolean>>({});
@@ -219,18 +245,42 @@ export class HomeHeroComponent implements OnInit, AfterViewInit, OnDestroy {
   private autoPlayTimer: any;
   private isHoverPaused = false;
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
+    const valid = [];
+    let checked = 0;
+
+    // Validate each video exists before letting it into the carousel array
+    for (const v of this.rawHeroVideos) {
+      try {
+        const response = await fetch(v.fileUrl, { method: 'HEAD' });
+        if (response.ok) {
+          valid.push(v);
+        }
+      } catch (e) {
+        // Silently fail, file not found or network error, skip adding
+      }
+      checked++;
+      this.loadingProgress.set(Math.round((checked / this.rawHeroVideos.length) * 100));
+    }
+
+    this.validVideos.set(valid);
+    this.isLoading.set(false);
+
     const initialMuted: Record<string, boolean> = {};
-    this.heroVideos.forEach(v => initialMuted[v.id] = false);
+    valid.forEach(v => initialMuted[v.id] = false);
     this.mutedState.set(initialMuted);
+
+    // Safety check if no videos loaded
+    if (valid.length > 0) {
+      setTimeout(() => {
+        this.playActiveVideo();
+        this.startAutoCarousel();
+      }, 100);
+    }
   }
 
   ngAfterViewInit(): void {
-    // Start playback on the first video
-    setTimeout(() => {
-      this.playActiveVideo();
-      this.startAutoCarousel();
-    }, 100);
+    // Moved to ngOnInit after layout validation settles
   }
 
   ngOnDestroy(): void {
@@ -239,6 +289,8 @@ export class HomeHeroComponent implements OnInit, AfterViewInit, OnDestroy {
 
   startAutoCarousel() {
     this.clearAutoCarousel();
+    if (this.validVideos().length <= 1) return; // No point carouseling 0 or 1 video
+
     if (!this.isHoverPaused) {
       // Advances every 5 seconds if the video hasn't ended naturally
       this.autoPlayTimer = setInterval(() => {
@@ -269,6 +321,7 @@ export class HomeHeroComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   playActiveVideo() {
+    if (this.validVideos().length === 0) return;
     this.isPlaying.set(true);
     this.videoEls.forEach((ref, index) => {
       const video = ref.nativeElement;
@@ -297,12 +350,12 @@ export class HomeHeroComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   isCurrentMuted(): boolean {
-    const activeVideo = this.heroVideos[this.activeIndex()];
+    const activeVideo = this.validVideos()[this.activeIndex()];
     return this.mutedState()[activeVideo.id] ?? true;
   }
 
   toggleCurrentAudio(): void {
-    const activeRecord = this.heroVideos[this.activeIndex()];
+    const activeRecord = this.validVideos()[this.activeIndex()];
     const nextMuted: Record<string, boolean> = { ...this.mutedState() };
 
     const vEl = this.videoEls.get(this.activeIndex())?.nativeElement;
@@ -315,7 +368,7 @@ export class HomeHeroComponent implements OnInit, AfterViewInit, OnDestroy {
       this.videoEls.forEach((ref, i) => {
         if (i !== this.activeIndex()) {
           ref.nativeElement.muted = true;
-          const oId = this.heroVideos[i].id;
+          const oId = this.validVideos()[i].id;
           nextMuted[oId] = true;
         }
       });
@@ -324,18 +377,20 @@ export class HomeHeroComponent implements OnInit, AfterViewInit, OnDestroy {
     this.mutedState.set(nextMuted);
   }
 
-  manualNext(): void {
-    const nextIdx = (this.activeIndex() + 1) % this.heroVideos.length;
-    this.activeIndex.set(nextIdx);
+  manualNext() {
+    if (this.validVideos().length <= 1) return;
+    this.clearAutoCarousel();
+    this.activeIndex.update(idx => (idx + 1) % this.validVideos().length);
     this.playActiveVideo();
-    this.startAutoCarousel(); // reset timer
+    this.startAutoCarousel();
   }
 
-  manualPrev(): void {
-    const prevIdx = (this.activeIndex() - 1 + this.heroVideos.length) % this.heroVideos.length;
-    this.activeIndex.set(prevIdx);
+  manualPrev() {
+    if (this.validVideos().length <= 1) return;
+    this.clearAutoCarousel();
+    this.activeIndex.update(idx => (idx - 1 + this.validVideos().length) % this.validVideos().length);
     this.playActiveVideo();
-    this.startAutoCarousel(); // reset timer
+    this.startAutoCarousel();
   }
 
   scrollToPartners() {
