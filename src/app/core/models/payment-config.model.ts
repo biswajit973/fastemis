@@ -28,6 +28,8 @@ export interface ActivePaymentPayload {
     userId: string;
     qrImageUrl: string;
     bank: BankDetails;
+    hasQr?: boolean;
+    hasBank?: boolean;
     startsAt: string;
     expiresAt: string;
     status: 'active' | 'expired';
@@ -48,12 +50,29 @@ export type PaymentTransactionStatus = 'pending' | 'verified' | 'rejected';
 export interface PaymentTransaction {
     id: string;
     userId: string;
+    userName?: string;
+    userNumber?: string;
     transactionId: string;
     proofImageUrl: string;
     proofFileName: string;
     amountInr: number;
     status: PaymentTransactionStatus;
     createdAt: string;
+    updatedAt?: string;
+    reviewedAt?: string | null;
     paymentSetId?: string;
     paymentScope?: PaymentSetScope;
+}
+
+export interface PaymentTemplate {
+    id: string;
+    qrImageUrl: string;
+    accountHolderName: string;
+    bankName: string;
+    accountNumber: string;
+    ifsc: string;
+    branch?: string;
+    hasQr: boolean;
+    hasBank: boolean;
+    createdAt: string;
 }

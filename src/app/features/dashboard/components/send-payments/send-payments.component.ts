@@ -11,30 +11,35 @@ import { PaymentConfigService } from '../../../../core/services/payment-config.s
 import { ApplicationService } from '../../../../core/services/application.service';
 
 @Component({
-    selector: 'app-send-payments',
-    standalone: true,
-    imports: [CommonModule, RouterLink, FormsModule, DashboardNavComponent, CountdownTimerComponent, UploadZoneComponent],
-    template: `
+  selector: 'app-send-payments',
+  standalone: true,
+  imports: [CommonModule, RouterLink, FormsModule, DashboardNavComponent, CountdownTimerComponent, UploadZoneComponent],
+  template: `
     <app-dashboard-nav></app-dashboard-nav>
 
-    <main class="pt-20 md:pt-24 pb-24 md:pb-12 md:pl-64 min-h-screen bg-surface-2">
+    <main class="pt-20 md:pt-28 pb-32 md:pb-16 md:pl-[300px] min-h-screen bg-surface-2">
       <div class="container max-w-5xl py-6">
         <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 class="text-2xl md:text-3xl font-bold text-primary mb-1">Send Payments</h1>
-            <p class="text-sm text-secondary">Pay using QR code or bank account details shown below.</p>
+            <p class="text-sm text-secondary">Pay by QR or bank details. Transaction proof is mandatory.</p>
           </div>
 
           <div class="flex items-center gap-2">
             <button
-              (click)="refreshPaymentDetails()"
-              class="px-4 py-2 rounded-lg border border-border bg-surface text-sm font-medium text-primary hover:border-primary transition-colors">
+              (click)="manualRefresh()"
+              [disabled]="loadingPayment() || loadingTransactions()"
+              class="px-4 py-2 rounded-lg border border-border bg-surface text-sm font-medium text-primary hover:border-primary transition-colors disabled:opacity-60">
               Refresh
             </button>
             <a routerLink="/dashboard" class="px-4 py-2 rounded-lg border border-border bg-surface text-sm font-medium text-primary no-underline hover:border-primary transition-colors">
               Back
             </a>
           </div>
+        </div>
+
+        <div *ngIf="loadingPayment()" class="rounded-xl border border-border bg-surface p-6 flex items-center justify-center mb-6">
+          <div class="w-8 h-8 rounded-full border-2 border-surface-3 border-t-primary animate-spin"></div>
         </div>
 
         <div *ngIf="activePayment(); else noPaymentDetails" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -47,9 +52,20 @@ import { ApplicationService } from '../../../../core/services/application.servic
               </span>
             </div>
 
-            <div class="border border-border rounded-xl bg-surface-2 p-4 flex items-center justify-center">
-              <img [src]="activePayment()!.qrImageUrl" alt="Payment QR code" class="w-full max-w-[260px] aspect-square object-contain rounded-lg border border-border bg-white p-2">
+            <div *ngIf="activePayment()!.hasQr !== false && activePayment()!.qrImageUrl; else noQrTemplate"
+              class="border border-border rounded-xl bg-surface-2 p-4 flex items-center justify-center">
+              <img
+                [src]="activePayment()!.qrImageUrl"
+                alt="Payment QR code"
+                loading="lazy"
+                decoding="async"
+                class="w-full max-w-[260px] aspect-square object-contain rounded-lg border border-border bg-white p-2">
             </div>
+            <ng-template #noQrTemplate>
+              <div class="border border-border rounded-xl bg-surface-2 p-4 text-center text-sm text-secondary">
+                QR not provided in current payment config.
+              </div>
+            </ng-template>
 
             <div class="mt-4 rounded-lg bg-surface-2 border border-border p-3">
               <div class="text-xs text-secondary mb-1">Current details expire in</div>
@@ -64,20 +80,20 @@ import { ApplicationService } from '../../../../core/services/application.servic
 
           <section class="bg-surface border border-border rounded-2xl p-6 shadow-sm">
             <h2 class="font-semibold text-primary mb-4">Bank Account Details</h2>
-            <div class="space-y-3 text-sm">
-              <div class="rounded-lg border border-border bg-surface-2 p-3">
+            <div *ngIf="hasAnyBankValue(activePayment()!); else noBankTemplate" class="space-y-3 text-sm">
+              <div *ngIf="activePayment()!.bank.accountHolderName" class="rounded-lg border border-border bg-surface-2 p-3">
                 <div class="text-xs text-secondary mb-1">Account Holder</div>
                 <div class="font-medium text-primary">{{ activePayment()!.bank.accountHolderName }}</div>
               </div>
-              <div class="rounded-lg border border-border bg-surface-2 p-3">
+              <div *ngIf="activePayment()!.bank.bankName" class="rounded-lg border border-border bg-surface-2 p-3">
                 <div class="text-xs text-secondary mb-1">Bank Name</div>
                 <div class="font-medium text-primary">{{ activePayment()!.bank.bankName }}</div>
               </div>
-              <div class="rounded-lg border border-border bg-surface-2 p-3">
+              <div *ngIf="activePayment()!.bank.accountNumber" class="rounded-lg border border-border bg-surface-2 p-3">
                 <div class="text-xs text-secondary mb-1">Account Number</div>
                 <div class="font-medium text-primary font-mono tracking-wide">{{ activePayment()!.bank.accountNumber }}</div>
               </div>
-              <div class="rounded-lg border border-border bg-surface-2 p-3">
+              <div *ngIf="activePayment()!.bank.ifsc" class="rounded-lg border border-border bg-surface-2 p-3">
                 <div class="text-xs text-secondary mb-1">IFSC</div>
                 <div class="font-medium text-primary font-mono">{{ activePayment()!.bank.ifsc }}</div>
               </div>
@@ -86,6 +102,12 @@ import { ApplicationService } from '../../../../core/services/application.servic
                 <div class="font-medium text-primary">{{ activePayment()!.bank.branch }}</div>
               </div>
             </div>
+
+            <ng-template #noBankTemplate>
+              <div class="border border-border rounded-xl bg-surface-2 p-4 text-center text-sm text-secondary">
+                Bank details not provided in current payment config.
+              </div>
+            </ng-template>
           </section>
         </div>
 
@@ -117,6 +139,10 @@ import { ApplicationService } from '../../../../core/services/application.servic
                 [ngClass]="txnError() ? 'border-error focus:border-error' : 'border-border focus:border-primary'">
               <p *ngIf="txnError()" class="text-xs text-error mt-2">{{ txnError() }}</p>
 
+              <div *ngIf="proofPreviewUrl()" class="mt-3 rounded-lg border border-border bg-surface p-2 max-w-sm">
+                <img [src]="proofPreviewUrl()" alt="Proof preview" class="w-full max-h-44 rounded object-contain bg-white" />
+              </div>
+
               <div class="mt-4">
                 <button
                   (click)="submitTransaction()"
@@ -132,11 +158,14 @@ import { ApplicationService } from '../../../../core/services/application.servic
         <section class="bg-surface border border-border rounded-2xl p-6 shadow-sm mt-6">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold text-primary">Transaction History</h2>
-            <span class="text-xs text-secondary">{{ transactions().length }} record(s)</span>
+            <div class="flex items-center gap-3">
+              <span class="text-xs text-secondary">{{ transactions().length }} record(s)</span>
+              <div *ngIf="loadingTransactions()" class="w-4 h-4 rounded-full border-2 border-surface-3 border-t-primary animate-spin"></div>
+            </div>
           </div>
 
           <div *ngIf="transactions().length > 0; else noHistory" class="space-y-3">
-            <article *ngFor="let tx of transactions()" class="border border-border rounded-xl bg-surface-2 overflow-hidden">
+            <article *ngFor="let tx of transactions(); trackBy: trackByTxId" class="border border-border rounded-xl bg-surface-2 overflow-hidden">
               <button
                 (click)="toggleTransaction(tx.id)"
                 class="w-full text-left px-4 py-3 flex items-center justify-between gap-3 hover:bg-surface transition-colors">
@@ -171,10 +200,6 @@ import { ApplicationService } from '../../../../core/services/application.servic
                       <div class="font-medium text-primary">{{ formatDateTime(tx.createdAt) }}</div>
                     </div>
                     <div class="rounded-lg border border-border bg-surface-2 p-3">
-                      <div class="text-xs text-secondary mb-1">Amount</div>
-                      <div class="font-medium text-primary">{{ formatInr(tx.amountInr) }}</div>
-                    </div>
-                    <div class="rounded-lg border border-border bg-surface-2 p-3">
                       <div class="text-xs text-secondary mb-1">Status</div>
                       <div class="font-medium" [ngClass]="tx.status === 'pending' ? 'text-warning' : tx.status === 'verified' ? 'text-success' : 'text-error'">
                         {{ tx.status | titlecase }}
@@ -200,9 +225,7 @@ import { ApplicationService } from '../../../../core/services/application.servic
               </svg>
             </div>
             <h2 class="text-xl font-semibold text-primary mb-2">Payment Details Unavailable</h2>
-            <p class="text-sm text-secondary">
-              Payment details are being updated. Please refresh or try again in a few minutes.
-            </p>
+            <p class="text-sm text-secondary">Payment details are being updated. Please refresh or try again in a few minutes.</p>
           </section>
         </ng-template>
       </div>
@@ -210,176 +233,197 @@ import { ApplicationService } from '../../../../core/services/application.servic
   `
 })
 export class SendPaymentsComponent implements OnInit, OnDestroy {
-    activePayment = signal<ActivePaymentPayload | null>(null);
-    transactions = signal<PaymentTransaction[]>([]);
-    expandedTransactionId = signal<string | null>(null);
+  activePayment = signal<ActivePaymentPayload | null>(null);
+  loadingPayment = signal<boolean>(false);
 
-    uploadingProof = signal<boolean>(false);
-    uploadProgress = signal<number>(0);
-    proofDataUrl = signal<string>('');
-    proofFileName = signal<string>('');
-    submitting = signal<boolean>(false);
+  transactions = signal<PaymentTransaction[]>([]);
+  loadingTransactions = signal<boolean>(false);
+  expandedTransactionId = signal<string | null>(null);
 
-    proofError = signal<string>('');
-    txnError = signal<string>('');
+  uploadingProof = signal<boolean>(false);
+  uploadProgress = signal<number>(0);
+  proofFile = signal<File | null>(null);
+  proofPreviewUrl = signal<string>('');
+  submitting = signal<boolean>(false);
 
-    transactionIdInput = '';
-    private refreshTimer: any;
+  proofError = signal<string>('');
+  txnError = signal<string>('');
+  transactionIdInput = '';
 
-    constructor(
-        private authService: AuthService,
-        private paymentConfigService: PaymentConfigService,
-        private applicationService: ApplicationService
-    ) { }
+  private refreshTimer: number | null = null;
+  private proofPreviewObjectUrl = '';
 
-    ngOnInit(): void {
-        this.refreshPaymentDetails();
-        this.refreshTransactions();
-        this.refreshTimer = setInterval(() => this.refreshPaymentDetails(), 30_000);
+  constructor(
+    private authService: AuthService,
+    private paymentConfigService: PaymentConfigService,
+    private applicationService: ApplicationService
+  ) { }
+
+  ngOnInit(): void {
+    this.manualRefresh();
+    this.refreshTimer = window.setInterval(() => this.manualRefresh(), 10_000);
+  }
+
+  ngOnDestroy(): void {
+    if (this.refreshTimer !== null) {
+      window.clearInterval(this.refreshTimer);
+      this.refreshTimer = null;
+    }
+    this.resetPreviewObjectUrl();
+  }
+
+  manualRefresh(): void {
+    this.refreshPaymentDetails();
+    this.refreshTransactions();
+  }
+
+  refreshPaymentDetails(): void {
+    const userId = this.authService.currentUserSignal()?.id;
+    if (!userId) {
+      this.activePayment.set(null);
+      return;
     }
 
-    ngOnDestroy(): void {
-        if (this.refreshTimer) {
-            clearInterval(this.refreshTimer);
+    this.loadingPayment.set(true);
+    this.paymentConfigService.getActivePaymentForUserFromServer(userId).subscribe((payload) => {
+      this.activePayment.set(payload);
+      if (payload) {
+        this.paymentConfigService.logDisplay(payload, userId);
+      }
+      this.loadingPayment.set(false);
+    });
+  }
+
+  refreshTransactions(): void {
+    this.loadingTransactions.set(true);
+    this.paymentConfigService.getUserTransactionsFromServer().subscribe((items) => {
+      this.transactions.set(items);
+      this.loadingTransactions.set(false);
+    });
+  }
+
+  onCountdownExpired(): void {
+    this.refreshPaymentDetails();
+  }
+
+  sourceLabel(scope: 'global' | 'user'): string {
+    return scope === 'user' ? 'User-specific' : 'Global';
+  }
+
+  hasAnyBankValue(payload: ActivePaymentPayload): boolean {
+    return !!(
+      String(payload.bank.accountHolderName || '').trim() ||
+      String(payload.bank.bankName || '').trim() ||
+      String(payload.bank.accountNumber || '').trim() ||
+      String(payload.bank.ifsc || '').trim() ||
+      String(payload.bank.branch || '').trim()
+    );
+  }
+
+  onProofSelected(file: File): void {
+    this.proofError.set('');
+    this.uploadingProof.set(true);
+    this.uploadProgress.set(0);
+    this.proofFile.set(file);
+
+    this.resetPreviewObjectUrl();
+    this.proofPreviewObjectUrl = URL.createObjectURL(file);
+    this.proofPreviewUrl.set(this.proofPreviewObjectUrl);
+
+    const interval = window.setInterval(() => {
+      this.uploadProgress.update((current) => {
+        if (current >= 100) {
+          window.clearInterval(interval);
+          this.uploadingProof.set(false);
+          return 100;
         }
+        return current + 20;
+      });
+    }, 100);
+  }
+
+  submitTransaction(): void {
+    this.proofError.set('');
+    this.txnError.set('');
+
+    const proof = this.proofFile();
+    if (!proof) {
+      this.proofError.set('Transaction screenshot is required.');
     }
 
-    refreshPaymentDetails(): void {
-        const userId = this.authService.currentUserSignal()?.id;
-        if (!userId) {
-            this.activePayment.set(null);
-            return;
-        }
-
-        const payload = this.paymentConfigService.resolveActivePaymentForUser(userId);
-        this.activePayment.set(payload);
-
-        if (payload) {
-            this.paymentConfigService.logDisplay(payload, userId);
-        }
+    const txId = this.transactionIdInput.trim();
+    if (!txId) {
+      this.txnError.set('Transaction ID is required.');
     }
 
-    onCountdownExpired(): void {
-        this.refreshPaymentDetails();
+    if (!proof || !txId) {
+      return;
     }
 
-    sourceLabel(scope: 'global' | 'user'): string {
-        return scope === 'user' ? 'User-specific' : 'Global';
+    const currentAmount = Number(this.applicationService.currentApplication()?.requestedAmount || 0);
+    const active = this.activePayment();
+
+    this.submitting.set(true);
+    this.paymentConfigService.submitTransactionToServer({
+      transactionId: txId,
+      proofFile: proof,
+      amountInr: currentAmount,
+      paymentSetId: active?.setId,
+      paymentScope: active?.scope
+    }).subscribe((created) => {
+      this.submitting.set(false);
+      if (!created) {
+        this.txnError.set('Could not submit transaction. Please retry.');
+        return;
+      }
+
+      this.transactionIdInput = '';
+      this.proofFile.set(null);
+      this.uploadProgress.set(0);
+      this.uploadingProof.set(false);
+      this.resetPreviewObjectUrl();
+      this.refreshTransactions();
+      this.expandedTransactionId.set(created.id);
+    });
+  }
+
+  toggleTransaction(txId: string): void {
+    this.expandedTransactionId.update((current) => current === txId ? null : txId);
+  }
+
+  trackByTxId(_index: number, tx: PaymentTransaction): string {
+    return tx.id;
+  }
+
+  formatDateTime(value: string): string {
+    return new Date(value).toLocaleString([], {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  formatInr(value: number): string {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(value || 0);
+  }
+
+  statusClass(status: 'pending' | 'verified' | 'rejected'): string {
+    if (status === 'verified') return 'bg-success/10 text-success';
+    if (status === 'rejected') return 'bg-error/10 text-error';
+    return 'bg-warning/10 text-warning';
+  }
+
+  private resetPreviewObjectUrl(): void {
+    if (this.proofPreviewObjectUrl) {
+      URL.revokeObjectURL(this.proofPreviewObjectUrl);
+      this.proofPreviewObjectUrl = '';
     }
-
-    onProofSelected(file: File): void {
-        this.proofError.set('');
-        this.uploadingProof.set(true);
-        this.uploadProgress.set(0);
-        this.proofDataUrl.set('');
-        this.proofFileName.set(file.name);
-
-        const interval = setInterval(() => {
-            this.uploadProgress.update(current => {
-                if (current >= 100) {
-                    clearInterval(interval);
-                    this.uploadingProof.set(false);
-                    return 100;
-                }
-                return current + 25;
-            });
-        }, 140);
-
-        const reader = new FileReader();
-        reader.onload = () => {
-            this.proofDataUrl.set(String(reader.result || ''));
-        };
-        reader.readAsDataURL(file);
-    }
-
-    submitTransaction(): void {
-        this.proofError.set('');
-        this.txnError.set('');
-
-        const userId = this.authService.currentUserSignal()?.id;
-        if (!userId) {
-            return;
-        }
-
-        const txId = this.transactionIdInput.trim();
-        const active = this.activePayment();
-        if (!active) {
-            this.txnError.set('No active payment details available right now.');
-            return;
-        }
-        if (!this.proofDataUrl()) {
-            this.proofError.set('Transaction screenshot is required.');
-        }
-        if (!txId) {
-            this.txnError.set('Transaction ID is required.');
-        }
-        if (this.proofError() || this.txnError()) {
-            return;
-        }
-
-        this.submitting.set(true);
-        try {
-            const currentAmount = this.applicationService.currentApplication()?.payment_details?.amount || 0;
-            this.paymentConfigService.submitTransaction({
-                userId,
-                transactionId: txId,
-                proofImageUrl: this.proofDataUrl(),
-                proofFileName: this.proofFileName() || 'payment-proof.png',
-                amountInr: currentAmount,
-                paymentSetId: active?.setId,
-                paymentScope: active?.scope
-            });
-
-            this.transactionIdInput = '';
-            this.proofDataUrl.set('');
-            this.proofFileName.set('');
-            this.uploadProgress.set(0);
-            this.uploadingProof.set(false);
-            this.refreshTransactions();
-            if (this.transactions().length > 0) {
-                this.expandedTransactionId.set(this.transactions()[0].id);
-            }
-        } catch (e: any) {
-            this.txnError.set(e?.message || 'Could not submit transaction.');
-        } finally {
-            this.submitting.set(false);
-        }
-    }
-
-    toggleTransaction(txId: string): void {
-        this.expandedTransactionId.update(current => current === txId ? null : txId);
-    }
-
-    formatDateTime(value: string): string {
-        return new Date(value).toLocaleString([], {
-            year: 'numeric',
-            month: 'short',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    }
-
-    formatInr(value: number): string {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR',
-            maximumFractionDigits: 0
-        }).format(value || 0);
-    }
-
-    statusClass(status: 'pending' | 'verified' | 'rejected'): string {
-        if (status === 'verified') return 'bg-success/10 text-success';
-        if (status === 'rejected') return 'bg-error/10 text-error';
-        return 'bg-warning/10 text-warning';
-    }
-
-    private refreshTransactions(): void {
-        const userId = this.authService.currentUserSignal()?.id;
-        if (!userId) {
-            this.transactions.set([]);
-            return;
-        }
-        this.transactions.set(this.paymentConfigService.getTransactions(userId));
-    }
+    this.proofPreviewUrl.set('');
+  }
 }

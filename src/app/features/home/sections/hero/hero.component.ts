@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ElementRef, QueryList, ViewChildren, AfterViewInit, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 
@@ -7,102 +7,43 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
   standalone: true,
   imports: [CommonModule, ButtonComponent],
   styles: [`
-    .hero-shuffle-stage {
-      perspective: 1500px;
-      perspective-origin: 68% 40%;
-    }
-
-    .hero-deck-shell {
+    .hero-carousel-container {
       position: relative;
-      width: min(100%, 23rem);
-      height: 24.5rem;
+      width: min(100%, 22rem);
+      height: 32rem;
       margin-left: auto;
+      border-radius: 2rem;
+      overflow: hidden;
+      /* Soft glass container effect */
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 
+        0 25px 50px -12px rgba(20, 27, 35, 0.15), 
+        0 8px 24px -4px rgba(20, 27, 35, 0.10);
     }
-
-    .hero-deck-glow {
-      position: absolute;
-      inset: auto 10% 3% 10%;
-      height: 28%;
-      border-radius: 999px;
-      background: radial-gradient(circle, rgba(12, 65, 43, 0.2) 0%, rgba(12, 65, 43, 0.04) 55%, transparent 76%);
-      filter: blur(8px);
-      pointer-events: none;
-    }
-
-    .hero-shuffle-card {
+    
+    .hero-carousel-video {
       position: absolute;
       inset: 0;
-      transform-origin: 50% 88%;
-      will-change: transform, opacity, z-index;
-      backface-visibility: hidden;
-      border-radius: 1.25rem;
-      border: 1px solid #d1d9e6;
-      background: linear-gradient(135deg, #ffffff 0%, #f0f4f8 50%, #e2e8ec 100%);
-      box-shadow: 
-        0 25px 50px -12px rgba(20, 27, 35, 0.25), 
-        0 8px 24px -4px rgba(20, 27, 35, 0.15),
-        inset 0 3px 6px rgba(255, 255, 255, 1), 
-        inset 0 -3px 6px rgba(0, 0, 0, 0.04);
-      padding: 1rem 1rem 0.9rem;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      animation: heroDeckShuffle 8s linear infinite;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.8s ease-in-out, visibility 0.8s ease-in-out;
+      transform: scale(1.05); /* Slight zoom out effect on active */
     }
 
-    .hero-shuffle-a { animation-delay: 0s; }
-    .hero-shuffle-b { animation-delay: -6s; }
-    .hero-shuffle-c { animation-delay: -4s; }
-    .hero-shuffle-d { animation-delay: -2s; }
-
-    .hero-shuffle-stage:hover .hero-shuffle-card {
-      animation-play-state: paused;
+    .hero-carousel-video.is-active {
+      opacity: 1;
+      visibility: visible;
+      transform: scale(1);
+      transition: opacity 0.8s ease-in-out, visibility 0.8s ease-in-out, transform 5s linear;
+      z-index: 10;
     }
-
-    @keyframes heroDeckShuffle {
-      0%, 12% {
-        transform: translate3d(0, 0px, 0) rotate(-1.8deg) scale(1);
-        z-index: 4;
-        animation-timing-function: ease-out;
-      }
-      17% {
-        transform: translate3d(140px, -35px, 0) rotate(15deg) scale(1.05);
-        z-index: 5;
-        animation-timing-function: ease-in;
-      }
-      18% {
-        transform: translate3d(120px, -20px, 0) rotate(12deg) scale(1.03);
-        z-index: 1;
-        animation-timing-function: ease-out;
-      }
-      25%, 37% {
-        transform: translate3d(0, 36px, 0) rotate(1.3deg) scale(0.91);
-        z-index: 1;
-        animation-timing-function: ease-in-out;
-      }
-      50%, 62% {
-        transform: translate3d(0, 24px, 0) rotate(0.6deg) scale(0.94);
-        z-index: 2;
-        animation-timing-function: ease-in-out;
-      }
-      75%, 87% {
-        transform: translate3d(0, 12px, 0) rotate(-0.7deg) scale(0.97);
-        z-index: 3;
-        animation-timing-function: ease-in-out;
-      }
-      100% {
-        transform: translate3d(0, 0px, 0) rotate(-1.8deg) scale(1);
-        z-index: 4;
-      }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .hero-shuffle-a,
-      .hero-shuffle-b,
-      .hero-shuffle-c,
-      .hero-shuffle-d {
-        animation: none !important;
-      }
+    
+    /* Transparent merge effect into UI at bottom */
+    .hero-carousel-fade-bottom {
+      background: linear-gradient(to top, rgba(246, 248, 251, 1) 0%, rgba(246, 248, 251, 0.8) 15%, transparent 40%);
+      pointer-events: none;
     }
   `],
   template: `
@@ -163,89 +104,240 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
           </app-button>
         </div>
 
-        <!-- Right Visual (Realistic Shuffle Deck) -->
-        <div class="hero-shuffle-stage flex-1 relative w-full h-64 md:h-[26rem] scale-in hidden md:block">
-          <div class="hero-deck-shell">
-            <div class="hero-deck-glow"></div>
+        <!-- Right Visual (Clean Single Video Carousel) -->
+        <div class="flex-1 relative w-full h-[32rem] scale-in hidden md:block">
+          <div class="hero-carousel-container" (mouseenter)="pauseAutoPlay()" (mouseleave)="resumeAutoPlay()">
+            
+            <article *ngFor="let vid of heroVideos; let i = index" class="hero-carousel-video" [class.is-active]="activeIndex() === i">
+              <!-- Video Element -->
+              <video
+                #heroVideoEl
+                [attr.data-id]="vid.id"
+                [src]="vid.fileUrl"
+                class="w-full h-full object-cover pointer-events-none"
+                preload="metadata"
+                playsinline
+                [loop]="false"
+                [muted]="mutedState()[vid.id]"
+                [disablePictureInPicture]="true"
+                [attr.disableRemotePlayback]="'true'"
+                [attr.controlsList]="'nodownload nofullscreen noplaybackrate'"
+                (contextmenu)="$event.preventDefault()"
+                (ended)="onVideoEnded(i)">
+              </video>
 
-            <article class="hero-shuffle-card hero-shuffle-a">
-              <div class="flex items-start justify-between">
-                <div>
-                  <p class="text-[11px] uppercase tracking-wide text-muted">CoinVault Finance</p>
-                  <p class="text-base font-semibold text-primary mt-1">EMI approved for iPhone 17 Pro</p>
+              <!-- Gradient Fade over Video Content for text legibility -->
+              <div class="absolute inset-x-0 bottom-0 h-[60%] bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none z-10 transition-opacity"></div>
+              
+              <!-- Transparent Bottom Cover (Matches Background surface) to blend into UI -->
+              <div class="hero-carousel-fade-bottom absolute inset-x-0 bottom-0 h-32 z-10"></div>
+
+              <!-- Information Overlay -->
+              <div class="absolute bottom-6 left-6 right-6 z-20 pointer-events-none flex flex-col gap-3">
+                 <div class="flex items-center gap-3">
+                    <div class="flex flex-col">
+                        <span class="text-white font-semibold text-lg drop-shadow-md leading-tight">{{ vid.name }}</span>
+                        <span class="text-white/70 font-medium text-[11px] drop-shadow-md uppercase tracking-wider">Verified Customer</span>
+                    </div>
                 </div>
-                <span class="text-[10px] font-semibold px-2 py-1 rounded-full bg-green-100 text-green-700">Approved</span>
+                <p class="text-white/90 text-sm md:text-base leading-relaxed drop-shadow-sm font-medium">"{{ vid.quote }}"</p>
               </div>
-              <div class="space-y-1.5 mt-4 text-[12px] text-secondary">
-                <p><span class="font-medium text-primary">Amount:</span> ₹1,49,900</p>
-                <p><span class="font-medium text-primary">Plan:</span> Split into 12 easy parts</p>
-              </div>
-              <div class="mt-3 h-2 rounded-full bg-surface-3 overflow-hidden">
-                <div class="h-full w-4/5 bg-accent rounded-full"></div>
-              </div>
-              <p class="text-[11px] text-secondary mt-2">Checkout ready in your account</p>
             </article>
 
-            <article class="hero-shuffle-card hero-shuffle-b">
-              <div class="flex items-start justify-between">
-                <div>
-                  <p class="text-[11px] uppercase tracking-wide text-muted">CoinVault Finance</p>
-                  <p class="text-base font-semibold text-primary mt-1">Buy now, pay later approved for Sony PlayStation 5</p>
-                </div>
-                <span class="text-[10px] font-semibold px-2 py-1 rounded-full bg-green-100 text-green-700">Approved</span>
-              </div>
-              <div class="space-y-1.5 mt-4 text-[12px] text-secondary">
-                <p><span class="font-medium text-primary">Amount:</span> ₹54,990</p>
-                <p><span class="font-medium text-primary">Plan:</span> Split into 10 easy parts</p>
-              </div>
-              <div class="mt-3 h-2 rounded-full bg-surface-3 overflow-hidden">
-                <div class="h-full w-3/4 bg-accent rounded-full"></div>
-              </div>
-              <p class="text-[11px] text-secondary mt-2">Payment schedule synced instantly</p>
-            </article>
+            <!-- Central Play/Pause Toggle -->
+            <button
+              type="button"
+              (click)="togglePlay()"
+              class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-12 w-12 md:h-14 md:w-14 rounded-full bg-black/10 backdrop-blur-md text-white border border-white/10 flex items-center justify-center hover:bg-black/30 hover:scale-105 transition-all z-[60] shadow-2xl cursor-pointer">
+              <svg *ngIf="!isPlaying()" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="ml-0.5 opacity-20 hover:opacity-100 transition-opacity">
+                <path d="M8 5.5v13l10-6.5z"></path>
+              </svg>
+              <svg *ngIf="isPlaying()" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="opacity-20 hover:opacity-100 transition-opacity">
+                <rect x="7" y="5" width="4" height="14" rx="1"></rect>
+                <rect x="13" y="5" width="4" height="14" rx="1"></rect>
+              </svg>
+            </button>
 
-            <article class="hero-shuffle-card hero-shuffle-c">
-              <div class="flex items-start justify-between">
-                <div>
-                  <p class="text-[11px] uppercase tracking-wide text-muted">CoinVault Finance</p>
-                  <p class="text-base font-semibold text-primary mt-1">EMI approved for iPhone 16 Pro Max</p>
-                </div>
-                <span class="text-[10px] font-semibold px-2 py-1 rounded-full bg-green-100 text-green-700">Approved</span>
-              </div>
-              <div class="space-y-1.5 mt-4 text-[12px] text-secondary">
-                <p><span class="font-medium text-primary">Amount:</span> ₹1,39,900</p>
-                <p><span class="font-medium text-primary">Plan:</span> Split into 24 easy parts</p>
-              </div>
-              <div class="mt-3 h-2 rounded-full bg-surface-3 overflow-hidden">
-                <div class="h-full w-[70%] bg-accent rounded-full"></div>
-              </div>
-              <p class="text-[11px] text-secondary mt-2">Auto-adjusted in your EMI timeline</p>
-            </article>
+            <!-- Global Mini Sound/Mute Icon (Top Right) -->
+            <button
+               type="button"
+               (click)="toggleCurrentAudio()"
+               class="absolute top-5 right-5 z-[60] w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-black/60 transition-colors shadow-lg group cursor-pointer"
+               [title]="isCurrentMuted() ? 'Unmute' : 'Mute'">
+               <svg *ngIf="isCurrentMuted()" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                   <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+                   <line x1="23" y1="9" x2="17" y2="15"></line>
+                   <line x1="17" y1="9" x2="23" y2="15"></line>
+               </svg>
+               <svg *ngIf="!isCurrentMuted()" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                   <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+                   <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                   <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+               </svg>
+            </button>
 
-            <article class="hero-shuffle-card hero-shuffle-d">
-              <div class="flex items-start justify-between">
-                <div>
-                  <p class="text-[11px] uppercase tracking-wide text-muted">CoinVault Finance</p>
-                  <p class="text-base font-semibold text-primary mt-1">EMI approved for Lenovo Legion Laptop</p>
-                </div>
-                <span class="text-[10px] font-semibold px-2 py-1 rounded-full bg-green-100 text-green-700">Approved</span>
-              </div>
-              <div class="space-y-1.5 mt-4 text-[12px] text-secondary">
-                <p><span class="font-medium text-primary">Amount:</span> ₹1,24,990</p>
-                <p><span class="font-medium text-primary">Plan:</span> Split into 18 easy parts</p>
-              </div>
-              <div class="mt-3 h-2 rounded-full bg-surface-3 overflow-hidden">
-                <div class="h-full w-[68%] bg-accent rounded-full"></div>
-              </div>
-              <p class="text-[11px] text-secondary mt-2">Offer queued with your profile rules</p>
-            </article>
+            <!-- Floating Arrow Controls (Up/Down Layout) tightly inside the container -->
+            <div class="absolute right-4 top-1/2 -translate-y-1/2 z-[60] flex flex-col gap-3">
+               <button
+                 type="button"
+                 (click)="manualPrev()"
+                 class="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md shadow-lg border border-white/20 flex items-center justify-center text-white hover:bg-black/60 transition-all group cursor-pointer"
+                 aria-label="Previous Video">
+                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="group-hover:-translate-y-0.5 transition-transform"><polyline points="18 15 12 9 6 15"></polyline></svg>
+               </button>
+               <button
+                 type="button"
+                 (click)="manualNext()"
+                 class="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md shadow-lg border border-white/20 flex items-center justify-center text-white hover:bg-black/60 transition-all group cursor-pointer"
+                 aria-label="Next Video">
+                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="group-hover:translate-y-0.5 transition-transform"><polyline points="6 9 12 15 18 9"></polyline></svg>
+               </button>
+            </div>
+            
           </div>
         </div>
       </div>
     </section>
   `
 })
-export class HomeHeroComponent {
+export class HomeHeroComponent implements OnInit, AfterViewInit, OnDestroy {
+  @ViewChildren('heroVideoEl') private videoEls!: QueryList<ElementRef<HTMLVideoElement>>;
+
+  readonly heroVideos = [
+    { id: 'h1', fileUrl: '/mediaFiles/customervideos/Ratikanta.mp4', name: 'Ratikanta M.', quote: 'The instant EMI process entirely online changed everything. No branch visits!' },
+    { id: 'h2', fileUrl: '/mediaFiles/customervideos/monica.mp4', name: 'Monica S.', quote: 'Approved in 5 minutes and I bought my MacBook immediately. Flawless.' },
+    { id: 'h3', fileUrl: '/mediaFiles/customervideos/sreekanth.mp4', name: 'Sreekanth P.', quote: 'No waiting lines! FastEMIs connected me to the best partner seamlessly.' },
+    { id: 'h4', fileUrl: '/mediaFiles/customervideos/ritika.mp4', name: 'Ritika K.', quote: 'The transparent fees and instant approval saved me so much hassle.' },
+    { id: 'h5', fileUrl: '/mediaFiles/customervideos/Rudra.mp4', name: 'Rudra T.', quote: 'I was skeptical, but the zero hidden fees part is 100% real!' },
+    { id: 'h6', fileUrl: '/mediaFiles/customervideos/abhilash.mp4', name: 'Abhilash D.', quote: 'Finally, a platform that understands modern retail financing.' }
+  ];
+
+  readonly activeIndex = signal<number>(0);
+  readonly mutedState = signal<Record<string, boolean>>({});
+  readonly isPlaying = signal<boolean>(true);
+
+  private autoPlayTimer: any;
+  private isHoverPaused = false;
+
+  ngOnInit(): void {
+    const initialMuted: Record<string, boolean> = {};
+    this.heroVideos.forEach(v => initialMuted[v.id] = false);
+    this.mutedState.set(initialMuted);
+  }
+
+  ngAfterViewInit(): void {
+    // Start playback on the first video
+    setTimeout(() => {
+      this.playActiveVideo();
+      this.startAutoCarousel();
+    }, 100);
+  }
+
+  ngOnDestroy(): void {
+    this.clearAutoCarousel();
+  }
+
+  startAutoCarousel() {
+    this.clearAutoCarousel();
+    if (!this.isHoverPaused) {
+      // Advances every 5 seconds if the video hasn't ended naturally
+      this.autoPlayTimer = setInterval(() => {
+        this.manualNext();
+      }, 5000);
+    }
+  }
+
+  clearAutoCarousel() {
+    if (this.autoPlayTimer) clearInterval(this.autoPlayTimer);
+  }
+
+  pauseAutoPlay() {
+    this.isHoverPaused = true;
+    this.clearAutoCarousel();
+  }
+
+  resumeAutoPlay() {
+    this.isHoverPaused = false;
+    this.startAutoCarousel();
+  }
+
+  onVideoEnded(index: number) {
+    // Automatically advance to the next video instantly when current natural ends if earlier than 5s
+    if (index === this.activeIndex() && !this.isHoverPaused) {
+      this.manualNext();
+    }
+  }
+
+  playActiveVideo() {
+    this.isPlaying.set(true);
+    this.videoEls.forEach((ref, index) => {
+      const video = ref.nativeElement;
+      if (index === this.activeIndex()) {
+        video.currentTime = 0; // reset
+        void video.play().catch(() => { });
+      } else {
+        video.pause();
+      }
+    });
+  }
+
+  togglePlay() {
+    const video = this.videoEls.get(this.activeIndex())?.nativeElement;
+    if (video) {
+      if (video.paused) {
+        void video.play();
+        this.isPlaying.set(true);
+        this.startAutoCarousel();
+      } else {
+        video.pause();
+        this.isPlaying.set(false);
+        this.clearAutoCarousel(); // halt auto progression if manually paused
+      }
+    }
+  }
+
+  isCurrentMuted(): boolean {
+    const activeVideo = this.heroVideos[this.activeIndex()];
+    return this.mutedState()[activeVideo.id] ?? true;
+  }
+
+  toggleCurrentAudio(): void {
+    const activeRecord = this.heroVideos[this.activeIndex()];
+    const nextMuted: Record<string, boolean> = { ...this.mutedState() };
+
+    const vEl = this.videoEls.get(this.activeIndex())?.nativeElement;
+    if (vEl) {
+      const isMutedNow = vEl.muted;
+      vEl.muted = !isMutedNow;
+      nextMuted[activeRecord.id] = !isMutedNow;
+
+      // Mute all others just in case
+      this.videoEls.forEach((ref, i) => {
+        if (i !== this.activeIndex()) {
+          ref.nativeElement.muted = true;
+          const oId = this.heroVideos[i].id;
+          nextMuted[oId] = true;
+        }
+      });
+    }
+
+    this.mutedState.set(nextMuted);
+  }
+
+  manualNext(): void {
+    const nextIdx = (this.activeIndex() + 1) % this.heroVideos.length;
+    this.activeIndex.set(nextIdx);
+    this.playActiveVideo();
+    this.startAutoCarousel(); // reset timer
+  }
+
+  manualPrev(): void {
+    const prevIdx = (this.activeIndex() - 1 + this.heroVideos.length) % this.heroVideos.length;
+    this.activeIndex.set(prevIdx);
+    this.playActiveVideo();
+    this.startAutoCarousel(); // reset timer
+  }
+
   scrollToPartners() {
     const el = document.getElementById('partnersList');
     if (el) {

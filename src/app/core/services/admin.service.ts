@@ -1,5 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { AuthService } from './auth.service';
+import { runtimeStore } from '../utils/runtime-store';
 
 @Injectable({
     providedIn: 'root'
@@ -19,7 +20,7 @@ export class AdminService {
     sendNoticeMarquee(message: string, userId?: string) {
         const targetUserId = userId || this.authService.currentUserSignal()?.id || 'USR-MOCK-123';
         this.activeNoticeMarquee.set(message);
-        localStorage.setItem(`global_marquee_notice_${targetUserId}`, message);
+        runtimeStore.setItem(`global_marquee_notice_${targetUserId}`, message);
 
         // Also inject into the mock user profile directly
         const user = this.authService.currentUserSignal();
@@ -34,7 +35,7 @@ export class AdminService {
     dismissNoticeMarquee(userId?: string) {
         const targetUserId = userId || this.authService.currentUserSignal()?.id || 'USR-MOCK-123';
         this.activeNoticeMarquee.set(null);
-        localStorage.removeItem(`global_marquee_notice_${targetUserId}`);
+        runtimeStore.removeItem(`global_marquee_notice_${targetUserId}`);
 
         const user = this.authService.currentUserSignal();
         if (user && user.id === targetUserId) {
@@ -50,7 +51,7 @@ export class AdminService {
         const set = this.disabledUsers();
         set.add(userId);
         this.disabledUsers.set(new Set(set));
-        localStorage.setItem(`disabled_${userId}`, '1');
+        runtimeStore.setItem(`disabled_${userId}`, '1');
 
         // Auto-update if looking at themselves (demo mode)
         const user = this.authService.currentUserSignal();
@@ -66,7 +67,7 @@ export class AdminService {
         const set = this.disabledUsers();
         set.delete(userId);
         this.disabledUsers.set(new Set(set));
-        localStorage.removeItem(`disabled_${userId}`);
+        runtimeStore.removeItem(`disabled_${userId}`);
 
         const user = this.authService.currentUserSignal();
         if (user && user.id === userId) {
@@ -78,9 +79,9 @@ export class AdminService {
      * Permanently wipes user data (Simulated).
      */
     deleteUser(userId: string) {
-        localStorage.removeItem(`disabled_${userId}`);
-        localStorage.removeItem(`global_marquee_notice_${userId}`);
-        localStorage.removeItem(`assigned_agent_name_${userId}`);
+        runtimeStore.removeItem(`disabled_${userId}`);
+        runtimeStore.removeItem(`global_marquee_notice_${userId}`);
+        runtimeStore.removeItem(`assigned_agent_name_${userId}`);
 
         // In a real app this makes an API DELETE call.
         // For demo: if we delete the current user, log them out.
@@ -94,6 +95,6 @@ export class AdminService {
      * Checks if a user is trapped/disabled.
      */
     isUserDisabled(userId: string): boolean {
-        return this.disabledUsers().has(userId) || !!localStorage.getItem(`disabled_${userId}`);
+        return this.disabledUsers().has(userId) || !!runtimeStore.getItem(`disabled_${userId}`);
     }
 }

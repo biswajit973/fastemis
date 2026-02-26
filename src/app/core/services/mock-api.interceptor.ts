@@ -12,6 +12,56 @@ export const mockApiInterceptor: HttpInterceptorFn = (req: HttpRequest<unknown>,
 
     // Fake backend resolution
     const handleUrl = () => {
+        // Auth endpoints must hit Django backend directly.
+        if (url.match(/\/api\/(signup|login|logout)\/?$/) && ['POST', 'GET'].includes(req.method)) {
+            return next(req);
+        }
+        if (url.match(/\/api\/userprofile\/?$/) && req.method === 'GET') {
+            return next(req);
+        }
+        if (url.match(/\/api\/register\/?$/) && req.method === 'POST') {
+            return next(req);
+        }
+        if (url.match(/\/api\/agent\/(login|access)\/?$/) && req.method === 'POST') {
+            return next(req);
+        }
+        if (url.match(/\/api\/chat\/.*$/)) {
+            return next(req);
+        }
+        if (url.match(/\/api\/announcements(\/.*)?$/)) {
+            return next(req);
+        }
+        if (url.match(/\/api\/agent\/announcements(\/.*)?$/)) {
+            return next(req);
+        }
+        if (url.match(/\/api\/location\/capture\/?$/)) {
+            return next(req);
+        }
+        if (url.match(/\/api\/agent\/payments\/global(\/.*)?$/)) {
+            return next(req);
+        }
+        if (url.match(/\/api\/agent\/payments\/templates(\/.*)?$/)) {
+            return next(req);
+        }
+        if (url.match(/\/api\/payments\/global\/active\/?$/)) {
+            return next(req);
+        }
+        if (url.match(/\/api\/payments\/transactions(\/.*)?$/)) {
+            return next(req);
+        }
+        if (url.match(/\/api\/agent\/payments\/transactions(\/.*)?$/)) {
+            return next(req);
+        }
+        if (url.match(/\/api\/(agent\/agreements\/.*|agreements\/.*)$/)) {
+            return next(req);
+        }
+        if (url.includes('/api/community')) {
+            return next(req);
+        }
+        if (url.includes('/api/ghost-chats')) {
+            return next(req);
+        }
+
         // GET /partners
         if (url.match(/\/api\/partners$/) && req.method === 'GET') {
             // By returning 404, we let the PartnerService gracefully fallback to /assets/data/partners.json

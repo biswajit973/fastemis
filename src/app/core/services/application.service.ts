@@ -1,6 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 import { Application, ApplicationStatus, NEXT_STATUS } from '../models/application.model';
 import { BehaviorSubject, Observable, of } from 'rxjs';
+import { runtimeStore } from '../utils/runtime-store';
 
 @Injectable({
     providedIn: 'root'
@@ -12,8 +13,8 @@ export class ApplicationService {
     public currentApplication = signal<Application | null>(null);
 
     constructor() {
-        // Attempt load from localStorage (if navigating between routes)
-        const storedApp = localStorage.getItem('active_app');
+        // Attempt load from runtime store (if navigating between routes)
+        const storedApp = runtimeStore.getItem('active_app');
         if (storedApp) {
             try {
                 const app: Application = JSON.parse(storedApp);
@@ -26,14 +27,14 @@ export class ApplicationService {
         this.currentApplicationId.set(app.id);
         this.currentApplicationStatus.set(app.status);
         this.currentApplication.set(app);
-        localStorage.setItem('active_app', JSON.stringify(app));
+        runtimeStore.setItem('active_app', JSON.stringify(app));
     }
 
     clearApplication() {
         this.currentApplicationId.set(null);
         this.currentApplicationStatus.set(null);
         this.currentApplication.set(null);
-        localStorage.removeItem('active_app');
+        runtimeStore.removeItem('active_app');
     }
 
     updateStatus(newStatus: ApplicationStatus) {

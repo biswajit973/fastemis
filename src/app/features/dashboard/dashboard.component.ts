@@ -1,13 +1,13 @@
 import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
-import { ApplicationService } from '../../core/services/application.service';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { AdminService } from '../../core/services/admin.service';
-import { Application, ApplicationStatus } from '../../core/models/application.model';
 import { User } from '../../core/models/user.model';
 import { AgentDataService, UserStatusUpdate } from '../../core/services/agent-data.service';
 import { DashboardNavComponent } from './components/dashboard-nav/dashboard-nav.component';
+import { AnnouncementService, Announcement } from '../../core/services/announcement.service';
+import { AnnouncementCardComponent } from '../../shared/components/announcement-card/announcement-card.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -15,7 +15,8 @@ import { DashboardNavComponent } from './components/dashboard-nav/dashboard-nav.
   imports: [
     CommonModule,
     RouterLink,
-    DashboardNavComponent
+    DashboardNavComponent,
+    AnnouncementCardComponent
   ],
   template: `
     <app-dashboard-nav></app-dashboard-nav>
@@ -36,18 +37,31 @@ import { DashboardNavComponent } from './components/dashboard-nav/dashboard-nav.
 
     <!-- Main Content Area -->
     <ng-container *ngIf="!user()?.isDisabled; else disabledTrap">
-      <main class="pt-20 md:pt-24 pb-24 md:pb-12 md:pl-64 min-h-screen bg-surface-2 transition-standard" [class.mt-12]="user()?.activeMarqueeNotice">
-        <div class="container max-w-3xl py-6">
-          <div class="mb-6">
-            <h1 class="text-2xl md:text-3xl font-bold text-primary mb-2">Welcome back, {{ user()?.fullName }}</h1>
-            <p class="text-secondary text-sm md:text-base">Your dashboard is focused on status updates only.</p>
+      <main class="pt-20 md:pt-28 pb-32 md:pb-16 md:pl-[300px] min-h-screen bg-surface-2 transition-standard" [class.mt-12]="user()?.activeMarqueeNotice">
+        <div class="container max-w-4xl py-6 md:py-8">
+          <div class="mb-8 animate-fade-in">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-primary mb-2 tracking-tight">Welcome back, {{ user()?.fullName }}</h1>
+            <p class="text-secondary text-sm md:text-base font-medium">Your dashboard is focused on status updates only.</p>
           </div>
 
-          <section class="bg-surface rounded-2xl p-6 border border-border shadow-sm">
-            <h2 class="font-bold text-primary mb-4">Current Status</h2>
-            <div class="border border-border rounded-lg p-4 bg-surface-2">
-              <div class="flex flex-wrap items-center gap-2 mb-2">
-                <span class="font-semibold text-primary">{{ activeStatusCard().heading }}</span>
+          <div *ngIf="announcementsLoading()" class="mb-6 rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-medium text-secondary animate-pulse">
+            Loading important announcements...
+          </div>
+
+          <!-- Announcements Section -->
+          <div *ngIf="activeAnnouncements().length > 0" class="mb-8 space-y-4 animate-slide-up">
+            <app-announcement-card 
+              *ngFor="let ann of activeAnnouncements()"
+              [announcement]="ann"
+              (onAction)="handleAnnouncementAction(ann)">
+            </app-announcement-card>
+          </div>
+
+          <section class="bg-surface rounded-3xl p-6 md:p-8 border border-black/5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] animate-slide-up" [class.!delay-[100ms]]="activeAnnouncements().length > 0">
+            <h2 class="font-extrabold text-xl text-primary mb-5 tracking-tight">Current Status</h2>
+            <div class="border border-border rounded-2xl p-5 bg-surface-2 shadow-inner">
+              <div class="flex flex-wrap items-center gap-3 mb-3">
+                <span class="font-bold text-primary">{{ activeStatusCard().heading }}</span>
                 <span
                   class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide"
                   [ngClass]="statusBadgeClass(activeStatusCard().badge)">
@@ -56,17 +70,18 @@ import { DashboardNavComponent } from './components/dashboard-nav/dashboard-nav.
                   {{ activeStatusCard().badge }}
                 </span>
               </div>
-              <p class="text-sm text-secondary mb-4">{{ activeStatusCard().details }}</p>
-              <div class="rounded-lg border border-warning/40 bg-warning/15 text-warning px-3 py-2 text-xs md:text-sm">
-                To pay any payments, whether new EMI or existing EMI, use <span class="font-semibold">Send Payments</span> tab only.
+              <p class="text-[15px] leading-relaxed text-secondary mb-5">{{ activeStatusCard().details }}</p>
+              <div class="rounded-xl border border-warning/30 bg-warning/10 text-warning-contrast px-4 py-3 text-xs md:text-sm font-medium shadow-sm">
+                To pay any payments, whether new EMI or existing EMI, use the <span class="font-bold text-warning-contrast">Send Payments</span> tab only.
                 Once you pay, status update may take some time, so don't worry.
               </div>
             </div>
 
             <a
               routerLink="/dashboard/send-payments"
-              class="mt-4 inline-flex items-center px-4 py-2 rounded-lg border border-border bg-surface text-primary text-sm font-medium no-underline hover:border-primary transition-colors">
+              class="mt-6 inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-white text-sm font-bold no-underline hover:bg-primary-dark transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
               Open Send Payments
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="transition-transform group-hover:translate-x-1"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
             </a>
           </section>
         </div>
@@ -107,9 +122,6 @@ import { DashboardNavComponent } from './components/dashboard-nav/dashboard-nav.
              <button class="text-primary font-medium hover:underline text-sm" (click)="retryTrap()">
                Retry Connection
              </button>
-             <button class="px-3 py-2 rounded-lg border border-border text-sm font-medium text-primary hover:bg-surface-2 transition-colors" (click)="bypassConnectionTimeout()">
-               Bypass Connection Timeout
-             </button>
            </div>
         </div>
       </div>
@@ -120,27 +132,65 @@ export class DashboardComponent implements OnInit, OnDestroy {
   user = signal<User | null>(null);
   trapState = signal<'loading' | 'error'>('loading');
   statusUpdates = signal<UserStatusUpdate[]>([]);
+  activeAnnouncements = signal<Announcement[]>([]);
+  announcementsLoading = signal<boolean>(false);
   private statusPoller: any;
 
   constructor(
     private authService: AuthService,
-    private appService: ApplicationService,
     private adminService: AdminService,
-    private agentDataService: AgentDataService
+    private agentDataService: AgentDataService,
+    private announcementService: AnnouncementService,
+    private router: Router
   ) { }
 
   ngOnInit() {
     // Read from signals directly
     const currentUser = this.authService.currentUserSignal();
     this.user.set(currentUser);
-    this.ensureTestingApplication(currentUser);
 
     // If perfectly trapped, start the 6-second timeout illusion
     if (currentUser?.isDisabled) {
       this.initiateTrapTimer();
     }
+
     this.refreshCurrentStatuses();
-    this.statusPoller = setInterval(() => this.refreshCurrentStatuses(), 3000);
+    this.refreshAnnouncements();
+
+    this.statusPoller = setInterval(() => {
+      this.refreshCurrentStatuses();
+      this.refreshAnnouncements();
+    }, 7000);
+  }
+
+  refreshAnnouncements() {
+    const u = this.user();
+    if (u?.id) {
+      this.announcementsLoading.set(true);
+      this.announcementService.loadUserAnnouncements().subscribe({
+        next: (items) => this.activeAnnouncements.set(items),
+        error: () => this.activeAnnouncements.set([]),
+        complete: () => this.announcementsLoading.set(false)
+      });
+    } else {
+      this.activeAnnouncements.set([]);
+    }
+  }
+
+  handleAnnouncementAction(ann: Announcement) {
+    // Basic routing simulation for CTAs based on common fastEMIs flows
+    const text = ann.ctaText.toLowerCase();
+    if (text.includes('upload') || text.includes('document') || text.includes('kyc') || text.includes('voter')) {
+      // A realistic mock action: Scroll/focus or route to the chat to upload
+      this.router.navigate(['/dashboard/messages']);
+    } else if (text.includes('pay') || text.includes('emi')) {
+      this.router.navigate(['/dashboard/send-payments']);
+    } else if (text.includes('contact') || text.includes('agent') || text.includes('support')) {
+      this.router.navigate(['/dashboard/messages']);
+    } else {
+      // Generic fallback
+      this.router.navigate(['/dashboard/profile']);
+    }
   }
 
   // Notice Marquee Hook
@@ -159,18 +209,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   retryTrap() {
     this.initiateTrapTimer();
-  }
-
-  bypassConnectionTimeout() {
-    const currentUser = this.user();
-    if (!currentUser?.id) {
-      return;
-    }
-
-    this.adminService.enableUser(currentUser.id);
-    const updated = this.authService.currentUserSignal();
-    this.user.set(updated);
-    this.trapState.set('loading');
   }
 
   refreshCurrentStatuses() {
@@ -227,35 +265,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       return 'bg-warning';
     }
     return 'bg-primary';
-  }
-
-  private ensureTestingApplication(currentUser: User | null) {
-    if (!currentUser || !currentUser.id.startsWith('USR-MOCK')) {
-      return;
-    }
-
-    if (this.appService.currentApplication()) {
-      return;
-    }
-
-    const now = new Date();
-    const expiresAt = new Date(now.getTime() + 10 * 60 * 1000);
-    const mockApp: Application = {
-      id: 'APP-MOCK-1001',
-      partnerId: '1',
-      userId: currentUser.id,
-      requestedAmount: 120000,
-      payment_details: {
-        amount: 14999,
-        paymentRoutingId: 'FASTEMI-UPI-5678',
-        expires_at: expiresAt.toISOString()
-      },
-      status: ApplicationStatus.NEW_UNPAID,
-      createdAt: now.toISOString(),
-      updatedAt: now.toISOString()
-    };
-
-    this.appService.setApplication(mockApp);
   }
 
   ngOnDestroy(): void {

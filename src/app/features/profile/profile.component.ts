@@ -2,7 +2,17 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DashboardNavComponent } from '../dashboard/components/dashboard-nav/dashboard-nav.component';
 import { AuthService } from '../../core/services/auth.service';
-import { AgentDataService, AgentUserProfile } from '../../core/services/agent-data.service';
+
+interface UserProfileView {
+  fullName: string;
+  email: string;
+  mobile: string;
+  maritalStatus: string;
+  occupation: string;
+  monthlySalaryInr: string;
+  city: string;
+  address: string;
+}
 
 @Component({
   selector: 'app-profile',
@@ -11,20 +21,17 @@ import { AgentDataService, AgentUserProfile } from '../../core/services/agent-da
   template: `
     <app-dashboard-nav></app-dashboard-nav>
 
-    <main class="pt-20 md:pt-24 pb-24 md:pb-12 md:pl-64 min-h-screen bg-surface-2">
+    <main class="pt-20 md:pt-28 pb-32 md:pb-16 md:pl-[300px] min-h-screen bg-surface-2">
       <div class="container max-w-4xl py-6">
         <div class="bg-surface border border-border rounded-2xl shadow-sm overflow-hidden">
           <div class="px-6 py-4 border-b border-border bg-surface-2 flex items-center justify-between">
             <div>
               <h1 class="text-2xl font-bold text-primary">Profile Details</h1>
-              <p class="text-sm text-secondary">Basic details submitted during signup.</p>
+              <p class="text-sm text-secondary">Your account details from signup.</p>
             </div>
-            <div *ngIf="currentUserRole()">
-              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm"
-                [ngClass]="currentUserRole() === 'vendor' ? 'bg-accent/10 border border-accent/20 text-accent' : 'bg-primary/10 border border-primary/20 text-primary'">
-                {{ currentUserRole() === 'vendor' ? 'Agent Account' : 'User Account' }}
-              </span>
-            </div>
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm bg-primary/10 border border-primary/20 text-primary">
+              User Account
+            </span>
           </div>
 
           <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm" *ngIf="profile(); else noProfile">
@@ -41,32 +48,20 @@ import { AgentDataService, AgentUserProfile } from '../../core/services/agent-da
               <span class="font-medium text-primary">{{ profile()!.mobile }}</span>
             </div>
             <div>
-              <span class="block text-secondary mb-1">Date of Birth</span>
-              <span class="font-medium text-primary">{{ profile()!.dob }}</span>
-            </div>
-            <div>
-              <span class="block text-secondary mb-1">Tax ID</span>
-              <span class="font-medium text-primary font-mono">{{ profile()!.taxId }}</span>
-            </div>
-            <div>
-              <span class="block text-secondary mb-1">National ID</span>
-              <span class="font-medium text-primary font-mono">{{ profile()!.nationalId }}</span>
-            </div>
-            <div>
-              <span class="block text-secondary mb-1">Employment Type</span>
-              <span class="font-medium text-primary">{{ profile()!.employmentType | titlecase }}</span>
-            </div>
-            <div>
               <span class="block text-secondary mb-1">Marital Status</span>
-              <span class="font-medium text-primary">{{ profile()!.maritalStatus | titlecase }}</span>
-            </div>
-            <div *ngIf="profile()!.maritalStatus === 'married'" class="sm:col-span-2">
-              <span class="block text-secondary mb-1">Better Half Occupation</span>
-              <span class="font-medium text-primary">{{ profile()!.spouseOccupation || '-' }}</span>
+              <span class="font-medium text-primary">{{ profile()!.maritalStatus }}</span>
             </div>
             <div>
-              <span class="block text-secondary mb-1">Occupation</span>
+              <span class="block text-secondary mb-1">What You Do</span>
               <span class="font-medium text-primary">{{ profile()!.occupation }}</span>
+            </div>
+            <div>
+              <span class="block text-secondary mb-1">Monthly Salary (INR)</span>
+              <span class="font-medium text-primary">{{ profile()!.monthlySalaryInr }}</span>
+            </div>
+            <div>
+              <span class="block text-secondary mb-1">City</span>
+              <span class="font-medium text-primary">{{ profile()!.city }}</span>
             </div>
             <div class="sm:col-span-2">
               <span class="block text-secondary mb-1">Address</span>
@@ -83,13 +78,9 @@ import { AgentDataService, AgentUserProfile } from '../../core/services/agent-da
   `
 })
 export class ProfileComponent implements OnInit {
-  profile = signal<AgentUserProfile | null>(null);
-  currentUserRole = signal<string | null>(null);
+  profile = signal<UserProfileView | null>(null);
 
-  constructor(
-    private authService: AuthService,
-    private agentDataService: AgentDataService
-  ) { }
+  constructor(private authService: AuthService) { }
 
   ngOnInit(): void {
     const currentUser = this.authService.currentUserSignal();
@@ -97,8 +88,31 @@ export class ProfileComponent implements OnInit {
       return;
     }
 
-    this.currentUserRole.set(currentUser.role || null);
-    const profile = this.agentDataService.getUserById(currentUser.id);
-    this.profile.set(profile);
+    this.authService.getBackendUserProfile().subscribe({
+      next: (backend: any) => {
+        this.profile.set({
+          fullName: [backend?.first_name, backend?.last_name].filter(Boolean).join(' ').trim() || currentUser.fullName || '-',
+          email: backend?.email || currentUser.email || '-',
+          mobile: backend?.mobile_number || currentUser.mobile || '-',
+          maritalStatus: backend?.marital_status || '-',
+          occupation: backend?.what_you_do || '-',
+          monthlySalaryInr: backend?.monthly_salary || '-',
+          city: backend?.city || '-',
+          address: backend?.full_address || '-'
+        });
+      },
+      error: () => {
+        this.profile.set({
+          fullName: currentUser.fullName || '-',
+          email: currentUser.email || '-',
+          mobile: currentUser.mobile || '-',
+          maritalStatus: '-',
+          occupation: '-',
+          monthlySalaryInr: '-',
+          city: '-',
+          address: '-'
+        });
+      }
+    });
   }
 }

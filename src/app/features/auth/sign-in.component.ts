@@ -2,80 +2,38 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { AuthRole, AuthService } from '../../core/services/auth.service';
+import { AuthService } from '../../core/services/auth.service';
+import { NotificationService } from '../../core/services/notification.service';
+import { NavbarComponent } from '../../shared/components/navbar/navbar.component';
 
 @Component({
   selector: 'app-sign-in',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, NavbarComponent],
   template: `
-    <section class="min-h-screen bg-surface-2 px-4 py-10 sm:py-14">
-      <div class="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10 items-start">
-        <div class="rounded-3xl border border-border bg-surface p-6 sm:p-8 shadow-sm">
-          <p class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 text-accent text-xs font-semibold uppercase tracking-wide mb-4">
-            FastEMIs Access
-          </p>
-          <h1 class="text-3xl sm:text-4xl font-display font-bold text-primary mb-3">Sign in to continue</h1>
-          <p class="text-secondary leading-relaxed mb-6">
-            Choose your role, enter email id and password, and continue to your panel.
+    <app-navbar></app-navbar>
+
+    <section class="min-h-screen bg-surface-2 pt-20 pb-10 px-3 sm:px-4">
+      <div class="mx-auto max-w-md">
+        <div class="rounded-3xl border border-border bg-surface shadow-sm p-5 sm:p-6">
+          <p class="inline-flex items-center gap-2 rounded-full bg-accent/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-accent">
+            User Access
           </p>
 
-          <div class="space-y-3 text-sm">
-            <div class="rounded-xl border border-border bg-surface-2 p-3">
-              <p class="text-xs text-muted uppercase tracking-wide mb-1">User Demo</p>
-              <p class="font-medium text-primary">Email: samantha.jane&#64;example.com</p>
-              <p class="font-medium text-primary">Password: user&#64;1234</p>
-            </div>
-            <div class="rounded-xl border border-border bg-surface-2 p-3">
-              <p class="text-xs text-muted uppercase tracking-wide mb-1">Agent Demo</p>
-              <p class="font-medium text-primary">Email: agent&#64;acme.com</p>
-              <p class="font-medium text-primary">Password: agent&#64;1234</p>
-            </div>
-          </div>
+          <h1 class="mt-3 text-2xl sm:text-3xl font-bold text-primary">Sign in to your account</h1>
+          <p class="mt-1 text-sm text-secondary">Use your email and password to continue.</p>
 
-          <div class="mt-6 flex flex-wrap items-center gap-3">
-            <a routerLink="/" class="text-sm px-4 py-2 rounded-lg border border-border text-primary no-underline hover:bg-surface-2 transition-colors">
-              Back to Home
-            </a>
-            <a routerLink="/tester" class="text-sm px-4 py-2 rounded-lg bg-primary text-white no-underline hover:opacity-95 transition-opacity">
-              Bypass via Tester
-            </a>
-          </div>
-        </div>
-
-        <div class="rounded-3xl border border-border bg-surface p-6 sm:p-8 shadow-sm">
-          <div class="inline-flex w-full rounded-xl border border-border bg-surface-2 p-1 mb-6">
-            <button
-              type="button"
-              (click)="switchRole('user')"
-              class="flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
-              [class.bg-surface]="role() === 'user'"
-              [class.text-primary]="role() === 'user'"
-              [class.text-secondary]="role() !== 'user'">
-              Sign in as User
-            </button>
-            <button
-              type="button"
-              (click)="switchRole('vendor')"
-              class="flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
-              [class.bg-surface]="role() === 'vendor'"
-              [class.text-primary]="role() === 'vendor'"
-              [class.text-secondary]="role() !== 'vendor'">
-              Sign in as Agent
-            </button>
-          </div>
-
-          <form [formGroup]="signInForm" (ngSubmit)="onSubmit()" class="space-y-4">
+          <form [formGroup]="signInForm" (ngSubmit)="onSubmit()" class="mt-6 space-y-4">
             <div>
-              <label for="email" class="block text-sm font-medium text-primary mb-1.5">Email ID</label>
+              <label for="identifier" class="block text-sm font-medium text-primary mb-1.5">Email ID</label>
               <input
-                id="email"
+                id="identifier"
                 type="email"
-                formControlName="email"
-                class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-primary outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
-                placeholder="Enter email id" />
-              @if (showError('email')) {
-                <p class="mt-1 text-xs text-error">{{ getEmailError() }}</p>
+                formControlName="identifier"
+                class="w-full rounded-xl border border-border bg-surface px-3 py-3 outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
+                placeholder="you@example.com" />
+              @if (showError('identifier')) {
+                <p class="mt-1 text-xs text-error">{{ getIdentifierError() }}</p>
               }
             </div>
 
@@ -85,12 +43,17 @@ import { AuthRole, AuthService } from '../../core/services/auth.service';
                 id="password"
                 type="password"
                 formControlName="password"
-                class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-primary outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
+                class="w-full rounded-xl border border-border bg-surface px-3 py-3 outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
                 placeholder="Enter password" />
               @if (showError('password')) {
                 <p class="mt-1 text-xs text-error">{{ getPasswordError() }}</p>
               }
             </div>
+
+            <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+              <input type="checkbox" formControlName="rememberMe" class="h-4 w-4 rounded border-border text-primary focus:ring-accent/40" />
+              <span class="text-sm text-secondary">Remember me on this device</span>
+            </label>
 
             @if (errorMessage()) {
               <div class="rounded-xl border border-error/30 bg-error/10 px-3 py-2 text-sm text-error">
@@ -101,68 +64,50 @@ import { AuthRole, AuthService } from '../../core/services/auth.service';
             <button
               type="submit"
               [disabled]="submitting()"
-              class="w-full rounded-xl bg-primary text-white py-2.5 font-semibold transition-opacity disabled:opacity-60">
-              {{ submitting() ? 'Signing In...' : (role() === 'user' ? 'Sign In as User' : 'Sign In as Agent') }}
-            </button>
-
-            <button
-              type="button"
-              (click)="applyDemoCredentials()"
-              class="w-full rounded-xl border border-border py-2.5 text-sm font-medium text-primary hover:bg-surface-2 transition-colors">
-              Use Demo Credentials
+              class="w-full rounded-xl bg-primary text-white py-3 font-semibold disabled:opacity-60">
+              {{ submitting() ? 'Signing In...' : 'Sign In as User' }}
             </button>
           </form>
+
+          <div class="mt-5 grid grid-cols-1 gap-2">
+            <a routerLink="/sign-up"
+              class="text-center rounded-xl border border-border px-3 py-2.5 text-sm font-medium text-primary no-underline hover:bg-surface-2">
+              Create New Account
+            </a>
+            <a routerLink="/agent-sign-in"
+              class="text-center rounded-xl border border-border px-3 py-2.5 text-sm font-medium text-primary no-underline hover:bg-surface-2">
+              Agent Login
+            </a>
+          </div>
         </div>
       </div>
     </section>
   `
 })
 export class SignInComponent implements OnInit {
-  role = signal<AuthRole>('user');
   submitting = signal(false);
   errorMessage = signal('');
+  redirectUrl = signal<string>('');
 
   signInForm: FormGroup;
 
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
+    private notificationService: NotificationService,
     private router: Router,
     private route: ActivatedRoute
   ) {
     this.signInForm = this.fb.group({
-      email: ['samantha.jane@example.com', [Validators.required, Validators.email]],
-      password: ['user@1234', [Validators.required, Validators.minLength(4)]]
+      identifier: ['', [Validators.required, Validators.email]],
+      password: ['', [Validators.required, Validators.minLength(4)]],
+      rememberMe: [true]
     });
   }
 
   ngOnInit(): void {
-    const requestedRole = this.route.snapshot.queryParamMap.get('role');
-    if (requestedRole === 'vendor') {
-      this.switchRole('vendor');
-      return;
-    }
-
-    if (requestedRole === 'user') {
-      this.switchRole('user');
-    }
-  }
-
-  switchRole(role: AuthRole): void {
-    this.role.set(role);
-    this.errorMessage.set('');
-    this.signInForm.reset({
-      email: role === 'user' ? 'samantha.jane@example.com' : 'agent@acme.com',
-      password: role === 'user' ? 'user@1234' : 'agent@1234'
-    });
-  }
-
-  applyDemoCredentials(): void {
-    this.signInForm.patchValue({
-      email: this.role() === 'user' ? 'samantha.jane@example.com' : 'agent@acme.com',
-      password: this.role() === 'user' ? 'user@1234' : 'agent@1234'
-    });
-    this.signInForm.markAsDirty();
+    const requestedRedirect = this.route.snapshot.queryParamMap.get('redirect');
+    this.redirectUrl.set(requestedRedirect || '');
   }
 
   onSubmit(): void {
@@ -172,32 +117,49 @@ export class SignInComponent implements OnInit {
       return;
     }
 
-    const email = (this.signInForm.value.email || '').trim();
+    const identifier = (this.signInForm.value.identifier || '').trim();
     const password = (this.signInForm.value.password || '').trim();
+    const rememberMe = !!this.signInForm.value.rememberMe;
 
     this.submitting.set(true);
-    setTimeout(() => {
-      const result = this.authService.loginWithCredentials(this.role(), email, password);
+    this.authService.loginUserViaBackend(identifier, password, rememberMe).subscribe(result => {
       this.submitting.set(false);
-
       if (!result.success) {
         this.errorMessage.set(result.message || 'Could not sign in. Please try again.');
         return;
       }
 
-      void this.router.navigate([this.role() === 'user' ? '/dashboard' : '/agent']);
-    }, 250);
+      this.notificationService.success('Sign in successful.');
+      const currentUser = this.authService.currentUserSignal();
+      const isProfileComplete = currentUser?.profileComplete === true;
+      const redirect = this.redirectUrl();
+
+      if (!isProfileComplete) {
+        const queryParams = redirect.startsWith('/dashboard') && !redirect.startsWith('/dashboard/complete-profile')
+          ? { redirect }
+          : {};
+        void this.router.navigate(['/dashboard/complete-profile'], { queryParams });
+        return;
+      }
+
+      if (redirect.startsWith('/dashboard')) {
+        void this.router.navigateByUrl(redirect);
+        return;
+      }
+      void this.router.navigate(['/dashboard']);
+    });
   }
 
-  showError(controlName: 'email' | 'password'): boolean {
+  showError(controlName: 'identifier' | 'password'): boolean {
     const control = this.signInForm.get(controlName);
     return !!control && control.invalid && (control.touched || control.dirty);
   }
 
-  getEmailError(): string {
-    const control = this.signInForm.get('email');
+  getIdentifierError(): string {
+    const control = this.signInForm.get('identifier');
     if (!control?.errors) return '';
     if (control.errors['required']) return 'Email id is required.';
+    if (control.errors['email']) return 'Please enter a valid email id.';
     return 'Please enter a valid email id.';
   }
 

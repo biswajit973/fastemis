@@ -1,4 +1,5 @@
 export const environment = {
     production: true,
-    useMockApi: true // In this prototype we always use mock, normally false in prod
+    useMockApi: true, // In this prototype we always use mock, normally false in prod
+    disableInspect: true
 };

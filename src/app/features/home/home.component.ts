@@ -102,28 +102,27 @@ export class HomeComponent implements OnInit {
       'Jessica Miller', 'Anthony Cruz', 'Olivia Bennett', 'Daniel Kim', 'Sophia Martinez',
       'Lucas Silva', 'Elena Ivanov'
     ];
-    const amounts = ['$2,500', '$5,000', '$10,000', '$1,500', '$7,500', '$15,000'];
     const partners = ['Chase Bank', 'Bank of America', 'Wells Fargo', 'Citibank', 'Barclays', 'HSBC', 'Standard Chartered'];
     const times = ['Just now', '1m ago', '2m ago', '30s ago'];
 
     // Initial pop after 3 seconds
-    setTimeout(() => this.triggerRandomNotification(names, amounts, partners, times), 3000);
+    setTimeout(() => this.triggerRandomNotification(names, partners, times), 3000);
 
     // Then random every 15-45 seconds
-    this.scheduleNextNotification(names, amounts, partners, times);
+    this.scheduleNextNotification(names, partners, times);
   }
 
-  scheduleNextNotification(names: string[], amounts: string[], partners: string[], times: string[]) {
+  scheduleNextNotification(names: string[], partners: string[], times: string[]) {
     const randomDelay = Math.floor(Math.random() * (45000 - 15000 + 1) + 15000); // 15s to 45s
     this.timerInterval = setTimeout(() => {
-      this.triggerRandomNotification(names, amounts, partners, times);
-      this.scheduleNextNotification(names, amounts, partners, times); // Loop
+      this.triggerRandomNotification(names, partners, times);
+      this.scheduleNextNotification(names, partners, times); // Loop
     }, randomDelay);
   }
 
-  triggerRandomNotification(names: string[], amounts: string[], partners: string[], times: string[]) {
+  triggerRandomNotification(names: string[], partners: string[], times: string[]) {
     const name = names[Math.floor(Math.random() * names.length)];
-    const amount = amounts[Math.floor(Math.random() * amounts.length)];
+    const amount = this.generateUsdAmount(500, 1500);
     const partner = partners[Math.floor(Math.random() * partners.length)];
     const timeAgo = times[Math.floor(Math.random() * times.length)];
 
@@ -140,6 +139,13 @@ export class HomeComponent implements OnInit {
 
   dismissNotification() {
     this.activeNotification.set(null);
+  }
+
+  private generateUsdAmount(min: number, max: number): string {
+    const safeMin = Math.max(0, Math.floor(min));
+    const safeMax = Math.max(safeMin, Math.floor(max));
+    const amount = Math.floor(Math.random() * (safeMax - safeMin + 1)) + safeMin;
+    return `$${amount.toLocaleString('en-US')}`;
   }
 
   ngOnDestroy() {

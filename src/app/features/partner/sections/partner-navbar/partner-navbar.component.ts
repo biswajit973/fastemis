@@ -27,14 +27,24 @@ import { Partner } from '../../../../core/models/partner.model';
 
         <!-- Links -->
         <div class="flex items-center gap-6">
-          <a class="text-sm font-medium transition-standard hidden md:block cursor-pointer"
+          <button type="button"
+             (click)="scrollTo('partner-plans')"
+             class="text-sm font-medium transition-standard hidden md:block cursor-pointer bg-transparent border-0 p-0"
              [ngClass]="isScrolled ? 'text-secondary hover:text-primary' : 'text-white/80 hover:text-white'">
-            About
-          </a>
-          <a class="text-sm font-medium transition-standard hidden md:block cursor-pointer"
+            Plans
+          </button>
+          <button type="button"
+             (click)="scrollTo('partner-reviews')"
+             class="text-sm font-medium transition-standard hidden md:block cursor-pointer bg-transparent border-0 p-0"
              [ngClass]="isScrolled ? 'text-secondary hover:text-primary' : 'text-white/80 hover:text-white'">
             Reviews
-          </a>
+          </button>
+          <button type="button"
+             (click)="scrollTo('partner-faq')"
+             class="text-sm font-medium transition-standard hidden md:block cursor-pointer bg-transparent border-0 p-0"
+             [ngClass]="isScrolled ? 'text-secondary hover:text-primary' : 'text-white/80 hover:text-white'">
+            FAQ
+          </button>
           <a [routerLink]="['/partner', partner?.slug, 'apply']" 
              class="text-sm font-medium transition-standard no-underline"
              [ngClass]="isScrolled ? 'text-primary border-b-2 border-primary' : 'text-white border-b-2 border-white'">
@@ -52,5 +62,11 @@ export class PartnerNavbarComponent {
     @HostListener('window:scroll', [])
     onWindowScroll() {
         this.isScrolled = window.scrollY > 20;
+    }
+
+    scrollTo(id: string) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 }

@@ -38,15 +38,7 @@ import { Subscription } from 'rxjs';
 
         <app-stepper [steps]="steps" [currentStepIndex]="currentStep()"></app-stepper>
 
-        <div class="mt-4 mb-5 flex items-center justify-end">
-          <button
-            type="button"
-            (click)="toggleBypassMode()"
-            class="px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors"
-            [ngClass]="bypassMode() ? 'border-warning text-warning bg-warning/10 hover:bg-warning/20' : 'border-border text-secondary hover:text-primary hover:border-primary'">
-            Tester Bypass: {{ bypassMode() ? 'ON' : 'OFF' }}
-          </button>
-        </div>
+        <p class="mb-5 text-xs text-secondary">Draft is auto-saved for this browser session.</p>
 
         <!-- Main Form Card -->
         <div class="bg-surface rounded-2xl shadow-sm border border-border p-6 md:p-8">
@@ -330,6 +322,10 @@ import { Subscription } from 'rxjs';
 export class ApplyComponent implements OnInit, OnDestroy {
   partner: Partner | null = null;
   private routeSub!: Subscription;
+  private formValueSub?: Subscription;
+  private spouseValidationSub?: Subscription;
+  private draftKey: string = '';
+  private suppressDraftSave = false;
 
   steps = ['Info', 'Address', 'KYC', 'Finance', 'Security'];
   currentStep = signal<number>(0);
@@ -353,7 +349,6 @@ export class ApplyComponent implements OnInit, OnDestroy {
   uploadedLivePhotoFile = signal<File | null>(null);
 
   submitting = signal<boolean>(false);
-  bypassMode = signal<boolean>(false);
 
   constructor(
     private fb: FormBuilder,
@@ -365,16 +360,18 @@ export class ApplyComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit() {
+    this.initForm();
+
     this.routeSub = this.route.paramMap.subscribe(params => {
       const slug = params.get('slug');
       if (slug) {
+        this.draftKey = `apply_draft_v1_${slug}`;
+        this.restoreDraft();
         this.loadPartner(slug);
       } else {
         this.router.navigate(['/']);
       }
     });
-
-    this.initForm();
   }
 
   loadPartner(slug: string) {
@@ -424,11 +421,16 @@ export class ApplyComponent implements OnInit, OnDestroy {
     }, { validators: CustomValidators.passwordMatch('password', 'confirmPassword') });
 
     this.setupSpouseOccupationValidation();
+
+    this.formValueSub?.unsubscribe();
+    this.formValueSub = this.applyForm.valueChanges.subscribe(() => {
+      this.saveDraft();
+    });
   }
 
   // Navigation Logic
   canContinueToNext(): boolean {
-    return this.bypassMode() || this.isCurrentStepValid();
+    return this.isCurrentStepValid();
   }
 
   isCurrentStepValid(): boolean {
@@ -474,6 +476,7 @@ export class ApplyComponent implements OnInit, OnDestroy {
   nextStep() {
     if (this.canContinueToNext() && this.currentStep() < this.steps.length - 1) {
       this.currentStep.update(v => v + 1);
+      this.saveDraft();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       // Mark fields as touched to show errors
@@ -497,20 +500,11 @@ export class ApplyComponent implements OnInit, OnDestroy {
     }
   }
 
-  toggleBypassMode() {
-    this.bypassMode.update(v => !v);
-    const isEnabled = this.bypassMode();
-    if (isEnabled) {
-      this.notificationService.warning('Tester bypass enabled. Continue button will skip required-field checks.');
-      return;
-    }
-    this.notificationService.success('Tester bypass disabled. Normal validation restored.');
-  }
-
   setMaritalStatus(status: 'married' | 'unmarried') {
     this.applyForm.patchValue({ maritalStatus: status });
     this.applyForm.get('maritalStatus')?.markAsTouched();
     this.applyForm.get('maritalStatus')?.updateValueAndValidity();
+    this.saveDraft();
   }
 
   setupSpouseOccupationValidation() {
@@ -521,7 +515,8 @@ export class ApplyComponent implements OnInit, OnDestroy {
       return;
     }
 
-    maritalStatus.valueChanges.subscribe(status => {
+    this.spouseValidationSub?.unsubscribe();
+    this.spouseValidationSub = maritalStatus.valueChanges.subscribe(status => {
       if (status === 'married') {
         spouseOccupation.setValidators([Validators.required, Validators.minLength(3)]);
       } else {
@@ -535,6 +530,7 @@ export class ApplyComponent implements OnInit, OnDestroy {
   prevStep() {
     if (this.currentStep() > 0) {
       this.currentStep.update(v => v - 1);
+      this.saveDraft();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
@@ -638,6 +634,7 @@ export class ApplyComponent implements OnInit, OnDestroy {
       this.applicationService.submitApplication(applicationData).subscribe({
         next: (app: any) => {
           this.submitting.set(false);
+          this.clearDraft();
           this.notificationService.success('Application submitted successfully!');
           // Redirect to dashboard
           this.router.navigate(['/dashboard']);
@@ -653,6 +650,63 @@ export class ApplyComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.saveDraft();
+    this.formValueSub?.unsubscribe();
+    this.spouseValidationSub?.unsubscribe();
     if (this.routeSub) this.routeSub.unsubscribe();
+  }
+
+  private saveDraft() {
+    if (!this.draftKey || !this.applyForm || this.suppressDraftSave) {
+      return;
+    }
+
+    const payload = {
+      step: this.currentStep(),
+      form: this.applyForm.getRawValue(),
+      savedAt: new Date().toISOString()
+    };
+
+    window.sessionStorage.setItem(this.draftKey, JSON.stringify(payload));
+  }
+
+  private restoreDraft() {
+    if (!this.draftKey || !this.applyForm) {
+      return;
+    }
+
+    const raw = window.sessionStorage.getItem(this.draftKey);
+    if (!raw) {
+      return;
+    }
+
+    try {
+      const payload = JSON.parse(raw) as {
+        step?: number;
+        form?: Record<string, unknown>;
+      };
+
+      this.suppressDraftSave = true;
+      if (payload.form) {
+        this.applyForm.patchValue(payload.form, { emitEvent: false });
+      }
+      const step = Math.max(0, Math.min(this.steps.length - 1, Number(payload.step ?? 0)));
+      this.currentStep.set(step);
+    } catch {
+      // ignore bad draft
+    } finally {
+      this.suppressDraftSave = false;
+    }
+
+    if (this.currentStep() >= 2) {
+      this.notificationService.warning('Draft restored. Please re-upload KYC files before final submit.');
+    }
+  }
+
+  private clearDraft() {
+    if (!this.draftKey) {
+      return;
+    }
+    window.sessionStorage.removeItem(this.draftKey);
   }
 }

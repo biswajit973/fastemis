@@ -41,3 +41,10 @@ testem.log
 .DS_Store
 Thumbs.db
 .vscode/
+
+# Backend runtime / local env
+backend/fastEMIsBackend/fastEMIsBackend/.venv/
+backend/fastEMIsBackend/fastEMIsBackend/__pycache__/
+backend/fastEMIsBackend/fastEMIsBackend/**/__pycache__/
+backend/fastEMIsBackend/fastEMIsBackend/db.sqlite3
+backend/fastEMIsBackend/fastEMIsBackend/media/

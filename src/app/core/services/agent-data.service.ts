@@ -2,6 +2,7 @@ import { Injectable, signal } from '@angular/core';
 import { ApplicationStatus } from '../models/application.model';
 import { AdminService } from './admin.service';
 import { ChatService } from './chat.service';
+import { runtimeStore } from '../utils/runtime-store';
 
 export interface AgentUploadedMedia {
     id: string;
@@ -79,8 +80,8 @@ export class AgentDataService {
     }
 
     private hydrate() {
-        const rawUsers = localStorage.getItem(this.usersStorageKey);
-        const rawApplications = localStorage.getItem(this.applicationsStorageKey);
+        const rawUsers = runtimeStore.getItem(this.usersStorageKey);
+        const rawApplications = runtimeStore.getItem(this.applicationsStorageKey);
 
         if (rawUsers && rawApplications) {
             try {
@@ -100,8 +101,8 @@ export class AgentDataService {
     }
 
     private persist() {
-        localStorage.setItem(this.usersStorageKey, JSON.stringify(this.usersMap()));
-        localStorage.setItem(this.applicationsStorageKey, JSON.stringify(this.applications()));
+        runtimeStore.setItem(this.usersStorageKey, JSON.stringify(this.usersMap()));
+        runtimeStore.setItem(this.applicationsStorageKey, JSON.stringify(this.applications()));
     }
 
     private syncUserFlagsFromStorage() {
@@ -112,8 +113,8 @@ export class AgentDataService {
             const user = users[userId];
             next[userId] = {
                 ...user,
-                isDisabled: !!localStorage.getItem(`disabled_${userId}`) || user.isDisabled,
-                notice: localStorage.getItem(`global_marquee_notice_${userId}`) || user.notice || null,
+                isDisabled: !!runtimeStore.getItem(`disabled_${userId}`) || user.isDisabled,
+                notice: runtimeStore.getItem(`global_marquee_notice_${userId}`) || user.notice || null,
                 statusUpdates: user.statusUpdates || []
             };
         });

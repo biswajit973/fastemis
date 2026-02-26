@@ -3,10 +3,12 @@ import { RouterOutlet } from '@angular/router';
 import { ToastComponent } from './shared/components/toast/toast.component';
 import { BreadcrumbsComponent } from './shared/components/breadcrumbs/breadcrumbs.component';
 
+import { GlobalSecurityComponent } from './shared/components/global-security/global-security.component';
+
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, ToastComponent, BreadcrumbsComponent],
+  imports: [RouterOutlet, ToastComponent, BreadcrumbsComponent, GlobalSecurityComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })

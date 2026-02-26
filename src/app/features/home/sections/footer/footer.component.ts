@@ -41,10 +41,11 @@ import { RouterLink } from '@angular/router';
               </ul>
             </div>
             <div>
-              <h4 class="font-bold text-primary mb-4">Developers</h4>
+              <h4 class="font-bold text-primary mb-4">Customer Links</h4>
               <ul class="space-y-2 text-sm text-secondary">
-                <li><a routerLink="/tester" class="hover:text-primary transition-standard no-underline inline-flex items-center gap-1.5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="text-accent" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>All Pages Tester</a></li>
-                <li><a routerLink="/feature-details" class="hover:text-primary transition-standard no-underline">All Feature Details</a></li>
+                <li><a routerLink="/partner/coinvault-finance" class="hover:text-primary transition-standard no-underline">Explore Partners</a></li>
+                <li><a routerLink="/testimonials-all" class="hover:text-primary transition-standard no-underline">Customer Testimonials</a></li>
+                <li><a routerLink="/sign-in" class="hover:text-primary transition-standard no-underline">Sign In</a></li>
               </ul>
             </div>
           </div>

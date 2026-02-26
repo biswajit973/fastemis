@@ -28,10 +28,18 @@ import { Subscription } from 'rxjs';
       <app-partner-navbar [partner]="partner"></app-partner-navbar>
       
       <main class="min-h-screen">
-        <app-partner-hero [partner]="partner"></app-partner-hero>
-        <app-partner-offerings [partner]="partner"></app-partner-offerings>
-        <app-partner-reviews [partner]="partner"></app-partner-reviews>
-        <app-partner-faq [partner]="partner"></app-partner-faq>
+        <section id="partner-overview">
+          <app-partner-hero [partner]="partner"></app-partner-hero>
+        </section>
+        <section id="partner-plans">
+          <app-partner-offerings [partner]="partner"></app-partner-offerings>
+        </section>
+        <section id="partner-reviews">
+          <app-partner-reviews [partner]="partner"></app-partner-reviews>
+        </section>
+        <section id="partner-faq">
+          <app-partner-faq [partner]="partner"></app-partner-faq>
+        </section>
       </main>
 
       <app-home-footer></app-home-footer>

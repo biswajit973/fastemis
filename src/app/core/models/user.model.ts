@@ -4,6 +4,11 @@ export interface User {
     email: string;
     role?: 'user' | 'vendor';
     mobile: string;
+    agreementTabEnabled?: boolean;
+    agreementCompletedAt?: string | null;
+    profileComplete?: boolean;
+    profileProgress?: number;
+    missingFields?: string[];
     whatsapp?: string;
     taxId: string;
     nationalId: string;

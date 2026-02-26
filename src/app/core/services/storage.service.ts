@@ -1,22 +1,25 @@
 import { Injectable } from '@angular/core';
+import { runtimeStore } from '../utils/runtime-store';
 
 @Injectable({
     providedIn: 'root'
 })
 export class StorageService {
+    private sessionToken: string | null = null;
+
     constructor() { }
 
     setItem(key: string, value: any): void {
         try {
-            localStorage.setItem(key, JSON.stringify(value));
+            runtimeStore.setItem(key, JSON.stringify(value));
         } catch (e) {
-            console.error('Error saving to localStorage', e);
+            console.error('Error saving to runtimeStore', e);
         }
     }
 
     getItem<T>(key: string): T | null {
         try {
-            const item = localStorage.getItem(key);
+            const item = runtimeStore.getItem(key);
             return item ? JSON.parse(item) : null;
         } catch (e) {
             return null;
@@ -24,11 +27,19 @@ export class StorageService {
     }
 
     removeItem(key: string): void {
-        localStorage.removeItem(key);
+        runtimeStore.removeItem(key);
     }
 
     clear(): void {
-        localStorage.clear();
+        runtimeStore.clear();
+    }
+
+    setSessionToken(token: string | null): void {
+        this.sessionToken = token;
+    }
+
+    getSessionToken(): string | null {
+        return this.sessionToken;
     }
 
     // Basic cookie wrappers for JWT

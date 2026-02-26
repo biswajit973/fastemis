@@ -1,6 +1,7 @@
 import { Injectable, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, catchError, map, of, tap } from 'rxjs';
 import {
     ActivePaymentPayload,
     BankDetails,
@@ -8,10 +9,12 @@ import {
     PaymentSet,
     PaymentSetScope,
     PaymentSetStatus,
+    PaymentTemplate,
     PaymentTransaction,
     PaymentTransactionStatus
 } from '../models/payment-config.model';
 import { ApiService } from './api.service';
+import { runtimeStore } from '../utils/runtime-store';
 
 export interface CreatePaymentSetInput {
     scope: PaymentSetScope;
@@ -33,6 +36,11 @@ export interface SubmitTransactionInput {
     paymentScope?: PaymentSetScope;
 }
 
+export interface CreateGlobalPaymentInput {
+    qrFile?: File | null;
+    bank?: Partial<BankDetails>;
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -40,14 +48,15 @@ export class PaymentConfigService {
     private readonly setsStorageKey = 'payment_sets_v1';
     private readonly logsStorageKey = 'payment_display_logs_v1';
     private readonly txStorageKey = 'payment_transactions_v1';
-    private readonly slotMs = 10 * 60 * 1000;
-
     private readonly paymentSets = signal<PaymentSet[]>([]);
     private readonly paymentLogs = signal<PaymentDisplayLog[]>([]);
     private readonly paymentTransactions = signal<PaymentTransaction[]>([]);
     private readonly seenLogKeys = new Set<string>();
 
-    constructor(private api: ApiService) {
+    constructor(
+        private api: ApiService,
+        private http: HttpClient
+    ) {
         this.hydrate();
     }
 
@@ -63,10 +72,221 @@ export class PaymentConfigService {
             .sort((a, b) => (a.startsAt < b.startsAt ? 1 : -1));
     }
 
+    loadGlobalSetsFromServer(): Observable<PaymentSet[]> {
+        return this.http.get<{ configs?: Array<{
+            id: string | number;
+            qr_image_url?: string;
+            account_holder_name?: string;
+            bank_name?: string;
+            account_number?: string;
+            ifsc?: string;
+            branch?: string;
+            created_at?: string;
+            expires_at?: string;
+            is_active?: boolean;
+            has_qr?: boolean;
+            has_bank?: boolean;
+        }> }>('/api/agent/payments/global').pipe(
+            map((response) => (response?.configs || []).map((raw) => this.mapBackendGlobalConfig(raw))),
+            tap((globalSets) => {
+                this.paymentSets.update((current) => {
+                    const nonGlobals = current.filter(item => item.scope !== 'global');
+                    return [...globalSets, ...nonGlobals];
+                });
+                this.persistSets();
+            }),
+            catchError(() => of(this.getGlobalSets()))
+        );
+    }
+
+    createGlobalSetFromServer(input: CreateGlobalPaymentInput): Observable<PaymentSet | null> {
+        const formData = new FormData();
+        if (input.qrFile) {
+            formData.append('qr_image', input.qrFile);
+        }
+
+        const bank = input.bank || {};
+        const holder = String(bank.accountHolderName || '').trim();
+        const bankName = String(bank.bankName || '').trim();
+        const accountNumber = String(bank.accountNumber || '').trim();
+        const ifsc = String(bank.ifsc || '').trim().toUpperCase();
+        const branch = String(bank.branch || '').trim();
+
+        if (holder) formData.append('account_holder_name', holder);
+        if (bankName) formData.append('bank_name', bankName);
+        if (accountNumber) formData.append('account_number', accountNumber);
+        if (ifsc) formData.append('ifsc', ifsc);
+        if (branch) formData.append('branch', branch);
+
+        if (!input.qrFile && !holder && !bankName && !accountNumber && !ifsc) {
+            return of(null);
+        }
+
+        return this.http.post<{ config?: {
+            id: string | number;
+            qr_image_url?: string;
+            account_holder_name?: string;
+            bank_name?: string;
+            account_number?: string;
+            ifsc?: string;
+            branch?: string;
+            created_at?: string;
+            expires_at?: string;
+            is_active?: boolean;
+            has_qr?: boolean;
+            has_bank?: boolean;
+        } }>('/api/agent/payments/global', formData).pipe(
+            map((response) => response?.config ? this.mapBackendGlobalConfig(response.config) : null),
+            tap((set) => {
+                if (!set) return;
+                this.paymentSets.update((current) => {
+                    const nonGlobals = current.filter(item => item.scope !== 'global');
+                    return [set, ...nonGlobals];
+                });
+                this.persistSets();
+            }),
+            catchError(() => of(null))
+        );
+    }
+
+    deleteGlobalSetFromServer(setId: string): Observable<boolean> {
+        const numericId = Number(setId);
+        if (!Number.isFinite(numericId) || numericId <= 0) {
+            return of(false);
+        }
+        return this.http.delete(`/api/agent/payments/global/${numericId}`).pipe(
+            map(() => true),
+            tap(() => {
+                this.paymentSets.update((items) => items.filter(item => item.id !== setId));
+                this.persistSets();
+            }),
+            catchError(() => of(false))
+        );
+    }
+
+    loadTemplatesFromServer(): Observable<PaymentTemplate[]> {
+        return this.http.get<{ templates?: Array<{
+            id: string | number;
+            qr_image_url?: string;
+            account_holder_name?: string;
+            bank_name?: string;
+            account_number?: string;
+            ifsc?: string;
+            branch?: string;
+            has_qr?: boolean;
+            has_bank?: boolean;
+            created_at?: string;
+        }> }>('/api/agent/payments/templates').pipe(
+            map((response) => (response?.templates || []).map((raw) => ({
+                id: String(raw.id),
+                qrImageUrl: String(raw.qr_image_url || ''),
+                accountHolderName: String(raw.account_holder_name || ''),
+                bankName: String(raw.bank_name || ''),
+                accountNumber: String(raw.account_number || ''),
+                ifsc: String(raw.ifsc || ''),
+                branch: String(raw.branch || ''),
+                hasQr: !!raw.has_qr,
+                hasBank: !!raw.has_bank,
+                createdAt: String(raw.created_at || new Date().toISOString())
+            }))),
+            catchError(() => of([]))
+        );
+    }
+
+    implementTemplateFromServer(templateId: string): Observable<PaymentSet | null> {
+        const id = Number(templateId);
+        if (!Number.isFinite(id) || id <= 0) {
+            return of(null);
+        }
+        return this.http.post<{ config?: {
+            id: string | number;
+            qr_image_url?: string;
+            account_holder_name?: string;
+            bank_name?: string;
+            account_number?: string;
+            ifsc?: string;
+            branch?: string;
+            created_at?: string;
+            expires_at?: string;
+            is_active?: boolean;
+            has_qr?: boolean;
+            has_bank?: boolean;
+        } }>(`/api/agent/payments/templates/${id}`, {}).pipe(
+            map((response) => response?.config ? this.mapBackendGlobalConfig(response.config) : null),
+            tap((set) => {
+                if (!set) return;
+                this.paymentSets.update((current) => {
+                    const nonGlobals = current.filter(item => item.scope !== 'global');
+                    return [set, ...nonGlobals];
+                });
+                this.persistSets();
+            }),
+            catchError(() => of(null))
+        );
+    }
+
+    deleteTemplateFromServer(templateId: string): Observable<boolean> {
+        const id = Number(templateId);
+        if (!Number.isFinite(id) || id <= 0) {
+            return of(false);
+        }
+        return this.http.delete(`/api/agent/payments/templates/${id}`).pipe(
+            map(() => true),
+            catchError(() => of(false))
+        );
+    }
+
+    getActivePaymentForUserFromServer(userId: string): Observable<ActivePaymentPayload | null> {
+        return this.http.get<{ active_payment?: {
+            set_id: string | number;
+            scope?: PaymentSetScope;
+            user_id?: string | number;
+            qr_image_url?: string;
+            has_qr?: boolean;
+            has_bank?: boolean;
+            bank?: {
+                accountHolderName?: string;
+                bankName?: string;
+                accountNumber?: string;
+                ifsc?: string;
+                branch?: string;
+            };
+            starts_at?: string;
+            expires_at?: string;
+            status?: 'active' | 'expired';
+        } | null }>('/api/payments/global/active').pipe(
+            map((response) => {
+                const active = response?.active_payment;
+                if (!active) {
+                    return null;
+                }
+                return {
+                    setId: String(active.set_id),
+                    scope: active.scope || 'global',
+                    userId: String(active.user_id || userId),
+                    qrImageUrl: String(active.qr_image_url || ''),
+                    hasQr: !!active.has_qr,
+                    hasBank: !!active.has_bank,
+                    bank: {
+                        accountHolderName: String(active.bank?.accountHolderName || ''),
+                        bankName: String(active.bank?.bankName || ''),
+                        accountNumber: String(active.bank?.accountNumber || ''),
+                        ifsc: String(active.bank?.ifsc || ''),
+                        branch: String(active.bank?.branch || '')
+                    },
+                    startsAt: String(active.starts_at || new Date().toISOString()),
+                    expiresAt: String(active.expires_at || new Date().toISOString()),
+                    status: active.status || 'active'
+                } as ActivePaymentPayload;
+            }),
+            catchError(() => of(null))
+        );
+    }
+
     createSet(input: CreatePaymentSetInput): PaymentSet {
         const nowIso = new Date().toISOString();
         const id = `PAY-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-        const validForMinutes = input.scope === 'global' ? 10 : Math.max(1, Number(input.validForMinutes || 10));
+        const validForMinutes = input.scope === 'global' ? 5 : Math.max(1, Number(input.validForMinutes || 10));
 
         const nextSet: PaymentSet = {
             id,
@@ -96,7 +316,7 @@ export class PaymentConfigService {
 
             const nextScope = patch.scope || item.scope;
             const nextValid = nextScope === 'global'
-                ? 10
+                ? 5
                 : Math.max(1, Number(patch.validForMinutes ?? item.validForMinutes));
 
             const next: PaymentSet = {
@@ -177,11 +397,9 @@ export class PaymentConfigService {
             return 'scheduled';
         }
 
-        if (set.scope === 'user') {
-            const expiresAtMs = startMs + set.validForMinutes * 60_000;
-            if (now.getTime() >= expiresAtMs) {
-                return 'expired';
-            }
+        const expiresAtMs = startMs + set.validForMinutes * 60_000;
+        if (now.getTime() >= expiresAtMs) {
+            return 'expired';
         }
 
         return 'active';
@@ -260,6 +478,73 @@ export class PaymentConfigService {
         return tx;
     }
 
+    submitTransactionToServer(input: {
+        transactionId: string;
+        proofFile: File;
+        amountInr?: number;
+        paymentSetId?: string;
+        paymentScope?: PaymentSetScope;
+    }): Observable<PaymentTransaction | null> {
+        const formData = new FormData();
+        formData.append('transaction_id', String(input.transactionId || '').trim());
+        formData.append('proof_image', input.proofFile);
+        if (input.amountInr !== undefined) {
+            formData.append('amount_inr', String(input.amountInr));
+        }
+        if (input.paymentSetId) {
+            formData.append('payment_set_id', input.paymentSetId);
+        }
+        if (input.paymentScope) {
+            formData.append('payment_scope', input.paymentScope);
+        }
+
+        return this.http.post<{ transaction?: any }>('/api/payments/transactions', formData).pipe(
+            map((response) => response?.transaction ? this.mapBackendTransaction(response.transaction) : null),
+            catchError(() => of(null))
+        );
+    }
+
+    getUserTransactionsFromServer(): Observable<PaymentTransaction[]> {
+        return this.http.get<{ transactions?: any[] }>('/api/payments/transactions').pipe(
+            map((response) => (response?.transactions || []).map((raw) => this.mapBackendTransaction(raw))),
+            catchError(() => of([]))
+        );
+    }
+
+    getAgentTransactionsFromServer(search: string = ''): Observable<PaymentTransaction[]> {
+        let params = new HttpParams();
+        const clean = String(search || '').trim();
+        if (clean) {
+            params = params.set('search', clean);
+        }
+        return this.http.get<{ transactions?: any[] }>('/api/agent/payments/transactions', { params }).pipe(
+            map((response) => (response?.transactions || []).map((raw) => this.mapBackendTransaction(raw))),
+            catchError(() => of([]))
+        );
+    }
+
+    updateTransactionStatusFromServer(id: string, status: 'verified' | 'rejected'): Observable<PaymentTransaction | null> {
+        const txId = Number(id);
+        if (!Number.isFinite(txId) || txId <= 0) {
+            return of(null);
+        }
+        return this.http.patch<{ transaction?: any }>(`/api/agent/payments/transactions/${txId}`, { status }).pipe(
+            map((response) => response?.transaction ? this.mapBackendTransaction(response.transaction) : null),
+            catchError(() => of(null))
+        );
+    }
+
+    deleteTransactionFromServer(id: string): Observable<boolean> {
+        const txId = Number(id);
+        if (!Number.isFinite(txId) || txId <= 0) {
+            return of(false);
+        }
+        return this.http.delete(`/api/agent/payments/transactions/${txId}`).pipe(
+            map(() => true),
+            catchError(() => of(false))
+        );
+    }
+
     getTransactions(userId: string): PaymentTransaction[] {
         return this.paymentTransactions()
             .filter(item => item.userId === userId)
@@ -321,18 +606,18 @@ export class PaymentConfigService {
     }
 
     private hydrate(): void {
-        const rawSets = localStorage.getItem(this.setsStorageKey);
-        const rawLogs = localStorage.getItem(this.logsStorageKey);
+        const rawSets = runtimeStore.getItem(this.setsStorageKey);
+        const rawLogs = runtimeStore.getItem(this.logsStorageKey);
 
         if (rawSets) {
             try {
                 const parsed = JSON.parse(rawSets) as PaymentSet[];
                 this.paymentSets.set(parsed);
             } catch {
-                this.paymentSets.set(this.getDefaultSets());
+                this.paymentSets.set([]);
             }
         } else {
-            this.paymentSets.set(this.getDefaultSets());
+            this.paymentSets.set([]);
         }
 
         if (rawLogs) {
@@ -345,7 +630,7 @@ export class PaymentConfigService {
             this.paymentLogs.set([]);
         }
 
-        const rawTx = localStorage.getItem(this.txStorageKey);
+        const rawTx = runtimeStore.getItem(this.txStorageKey);
         if (rawTx) {
             try {
                 this.paymentTransactions.set(JSON.parse(rawTx) as PaymentTransaction[]);
@@ -362,15 +647,15 @@ export class PaymentConfigService {
     }
 
     private persistSets(): void {
-        localStorage.setItem(this.setsStorageKey, JSON.stringify(this.paymentSets()));
+        runtimeStore.setItem(this.setsStorageKey, JSON.stringify(this.paymentSets()));
     }
 
     private persistLogs(): void {
-        localStorage.setItem(this.logsStorageKey, JSON.stringify(this.paymentLogs()));
+        runtimeStore.setItem(this.logsStorageKey, JSON.stringify(this.paymentLogs()));
     }
 
     private persistTransactions(): void {
-        localStorage.setItem(this.txStorageKey, JSON.stringify(this.paymentTransactions()));
+        runtimeStore.setItem(this.txStorageKey, JSON.stringify(this.paymentTransactions()));
     }
 
     private resolveActiveUserSpecific(userId: string, nowMs: number): PaymentSet | null {
@@ -389,18 +674,20 @@ export class PaymentConfigService {
     private resolveActiveGlobal(nowMs: number): { set: PaymentSet; slotStartMs: number; slotEndMs: number } | null {
         const globals = this.paymentSets()
             .filter(item => item.scope === 'global' && item.isActive)
-            .filter(item => new Date(item.startsAt).getTime() <= nowMs)
-            .sort((a, b) => (a.startsAt < b.startsAt ? -1 : 1));
+            .filter(item => {
+                const startsAtMs = new Date(item.startsAt).getTime();
+                const expiresAtMs = startsAtMs + item.validForMinutes * 60_000;
+                return startsAtMs <= nowMs && nowMs < expiresAtMs;
+            })
+            .sort((a, b) => (a.startsAt < b.startsAt ? 1 : -1));
 
         if (!globals.length) {
             return null;
         }
 
-        const anchor = new Date(globals[0].startsAt).getTime();
-        const slotIndex = Math.floor((nowMs - anchor) / this.slotMs);
-        const selected = globals[slotIndex % globals.length];
-        const slotStartMs = anchor + slotIndex * this.slotMs;
-        const slotEndMs = slotStartMs + this.slotMs;
+        const selected = globals[0];
+        const slotStartMs = new Date(selected.startsAt).getTime();
+        const slotEndMs = slotStartMs + selected.validForMinutes * 60_000;
 
         return { set: selected, slotStartMs, slotEndMs };
     }
@@ -415,53 +702,61 @@ export class PaymentConfigService {
         };
     }
 
-    private getDefaultSets(): PaymentSet[] {
-        const now = Date.now();
-        const createdAt = new Date(now).toISOString();
-        const firstStart = new Date(now - 40 * 60_000).toISOString();
-        const secondStart = new Date(now - 30 * 60_000).toISOString();
+    private mapBackendGlobalConfig(raw: {
+        id: string | number;
+        qr_image_url?: string;
+        account_holder_name?: string;
+        bank_name?: string;
+        account_number?: string;
+        ifsc?: string;
+        branch?: string;
+        created_at?: string;
+        expires_at?: string;
+        is_active?: boolean;
+        has_qr?: boolean;
+        has_bank?: boolean;
+    }): PaymentSet {
+        const startsAt = String(raw.created_at || new Date().toISOString());
+        const expiresAt = String(raw.expires_at || startsAt);
+        const startsAtMs = new Date(startsAt).getTime();
+        const expiresAtMs = new Date(expiresAt).getTime();
+        const validForMinutes = Math.max(1, Math.round((expiresAtMs - startsAtMs) / 60_000) || 5);
 
-        return [
-            {
-                id: 'PAY-DEFAULT-1',
-                scope: 'global',
-                qrImageUrl: this.makeDataQr('Global-A'),
-                bank: {
-                    accountHolderName: 'FastEMIs Collections A',
-                    bankName: 'HDFC Bank',
-                    accountNumber: '901234567890',
-                    ifsc: 'HDFC0001234',
-                    branch: 'BKC Mumbai'
-                },
-                validForMinutes: 10,
-                startsAt: firstStart,
-                isActive: true,
-                createdAt,
-                updatedAt: createdAt
+        return {
+            id: String(raw.id),
+            scope: 'global',
+            qrImageUrl: String(raw.qr_image_url || ''),
+            bank: {
+                accountHolderName: String(raw.account_holder_name || ''),
+                bankName: String(raw.bank_name || ''),
+                accountNumber: String(raw.account_number || ''),
+                ifsc: String(raw.ifsc || ''),
+                branch: String(raw.branch || '')
             },
-            {
-                id: 'PAY-DEFAULT-2',
-                scope: 'global',
-                qrImageUrl: this.makeDataQr('Global-B'),
-                bank: {
-                    accountHolderName: 'FastEMIs Collections B',
-                    bankName: 'ICICI Bank',
-                    accountNumber: '902345678901',
-                    ifsc: 'ICIC0000028',
-                    branch: 'Andheri East'
-                },
-                validForMinutes: 10,
-                startsAt: secondStart,
-                isActive: true,
-                createdAt,
-                updatedAt: createdAt
-            }
-        ];
+            validForMinutes,
+            startsAt,
+            isActive: !!raw.is_active,
+            createdAt: startsAt,
+            updatedAt: startsAt
+        };
     }
 
-    private makeDataQr(label: string): string {
-        const safeLabel = label.replace(/[^a-zA-Z0-9-]/g, '');
-        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><rect width='100%' height='100%' fill='#ffffff'/><rect x='20' y='20' width='200' height='200' fill='#111827'/><rect x='40' y='40' width='160' height='160' fill='#ffffff'/><rect x='60' y='60' width='120' height='120' fill='#111827'/><text x='120' y='224' font-size='16' text-anchor='middle' fill='#111827'>${safeLabel}</text></svg>`;
-        return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+    private mapBackendTransaction(raw: any): PaymentTransaction {
+        return {
+            id: String(raw?.id || ''),
+            userId: String(raw?.user || ''),
+            userName: String(raw?.user_name || ''),
+            userNumber: String(raw?.user_number || ''),
+            transactionId: String(raw?.transaction_id || ''),
+            proofImageUrl: String(raw?.proof_image_url || ''),
+            proofFileName: String(raw?.proof_image_url || '').split('/').pop() || 'proof',
+            amountInr: Number(raw?.amount_inr || 0),
+            status: (String(raw?.status || 'pending') as PaymentTransactionStatus),
+            createdAt: String(raw?.created_at || new Date().toISOString()),
+            updatedAt: raw?.updated_at ? String(raw.updated_at) : undefined,
+            reviewedAt: raw?.reviewed_at ? String(raw.reviewed_at) : null,
+            paymentSetId: raw?.payment_set_id ? String(raw.payment_set_id) : undefined,
+            paymentScope: raw?.payment_scope ? String(raw.payment_scope) as PaymentSetScope : undefined
+        };
     }
 }

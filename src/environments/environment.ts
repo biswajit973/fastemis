@@ -1,4 +1,5 @@
 export const environment = {
   production: false,
-  useMockApi: true
+  useMockApi: true,
+  disableInspect: true
 };

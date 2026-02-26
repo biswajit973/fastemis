@@ -1,60 +1,100 @@
-import { Component, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
-import { AuthService } from '../../../core/services/auth.service';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { RouterLink, RouterLinkActive } from '@angular/router';
 
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, RouterLinkActive],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <nav 
-      class="fixed top-0 left-0 right-0 z-50 transition-standard bg-surface"
-      [ngClass]="{'shadow-sm': isScrolled}"
-      style="height: 56px; @media (min-width: 1024px) { height: 64px; }">
-      <div class="container h-full flex items-center justify-between">
-        
-        <!-- Logo -->
-        <a routerLink="/" class="flex items-center gap-2 text-primary no-underline">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-          </svg>
-          <span class="font-bold text-lg tracking-tight">FastEMIs</span>
-        </a>
-
-        <!-- Links & Auth -->
-        <div class="flex items-center gap-2 md:gap-3">
-          <a routerLink="/tester" class="hidden md:inline-flex text-sm font-medium text-secondary hover:text-primary transition-standard px-3 py-2 rounded-lg hover:bg-surface-2 no-underline">
-            Tester
+    <header class="fixed top-0 left-0 right-0 z-50 border-b border-border/70 bg-surface/95 backdrop-blur-md">
+      <div class="mx-auto w-full max-w-6xl px-3 sm:px-4">
+        <div class="h-14 flex items-center justify-between">
+          <a routerLink="/" class="inline-flex items-center gap-2 no-underline text-primary font-semibold">
+            <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary text-white text-xs font-bold">F</span>
+            <span class="text-base">FastEMIs</span>
           </a>
 
-          @if (!auth.isAuthenticated()) {
-            <a routerLink="/sign-in" class="inline-flex items-center gap-1 text-sm font-medium text-primary transition-standard px-3 py-2 rounded-lg border border-border hover:bg-surface-2 no-underline">
-              Real Login
-            </a>
-          } @else {
-            <a
-              [routerLink]="auth.currentUserSignal()?.role === 'vendor' ? '/agent' : '/dashboard'"
-              class="inline-flex items-center gap-1 text-sm font-medium text-primary transition-standard px-3 py-2 rounded-lg border border-border hover:bg-surface-2 no-underline">
-              Dashboard
-            </a>
-          }
+          <nav class="hidden md:flex items-center gap-1">
+            <a routerLink="/" routerLinkActive="bg-surface-2 text-primary" [routerLinkActiveOptions]="{ exact: true }"
+              class="px-3 py-2 rounded-lg text-sm text-secondary hover:text-primary hover:bg-surface-2 no-underline">Home</a>
+            <a routerLink="/partner/coinvault-finance" routerLinkActive="bg-surface-2 text-primary"
+              class="px-3 py-2 rounded-lg text-sm text-secondary hover:text-primary hover:bg-surface-2 no-underline">Vendors</a>
+            <a routerLink="/testimonials-all" routerLinkActive="bg-surface-2 text-primary"
+              class="px-3 py-2 rounded-lg text-sm text-secondary hover:text-primary hover:bg-surface-2 no-underline">Testimonials</a>
+            <a routerLink="/sign-up" routerLinkActive="bg-surface-2 text-primary"
+              class="px-3 py-2 rounded-lg text-sm text-secondary hover:text-primary hover:bg-surface-2 no-underline">Register</a>
+          </nav>
 
-          <a routerLink="/sign-in" class="md:hidden flex items-center justify-center bg-surface-3 text-primary rounded-full w-8 h-8 no-underline">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-          </a>
+          <div class="hidden md:flex items-center gap-2">
+            <div class="relative">
+              <button type="button" (click)="toggleDesktopSignMenu()"
+                class="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-primary hover:bg-surface-2">
+                Log In
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+              <div *ngIf="desktopSignMenuOpen" class="absolute right-0 mt-2 w-52 rounded-xl border border-border bg-surface shadow-lg overflow-hidden">
+                <a routerLink="/sign-in" (click)="closeMenus()"
+                  class="block px-3 py-2.5 text-sm text-primary no-underline hover:bg-surface-2">User Login</a>
+                <a routerLink="/agent-sign-in" (click)="closeMenus()"
+                  class="block px-3 py-2.5 text-sm text-primary no-underline hover:bg-surface-2 border-t border-border">Vendor (Agent) Login</a>
+              </div>
+            </div>
+          </div>
+
+          <button type="button" class="md:hidden h-10 w-10 rounded-lg border border-border bg-surface-2 flex items-center justify-center"
+            (click)="toggleMobileMenu()"
+            aria-label="Toggle menu">
+            <svg *ngIf="!mobileMenuOpen" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+            <svg *ngIf="mobileMenuOpen" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
       </div>
-    </nav>
+    </header>
+
+    <div *ngIf="mobileMenuOpen" class="md:hidden fixed inset-0 z-40 bg-black/30" (click)="closeMenus()"></div>
+    <aside *ngIf="mobileMenuOpen" class="md:hidden fixed top-14 left-0 right-0 z-50 border-b border-border bg-surface shadow-xl">
+      <nav class="px-3 py-2 space-y-1">
+        <a routerLink="/" (click)="closeMenus()" class="block rounded-lg px-3 py-2.5 text-sm text-primary no-underline hover:bg-surface-2">Home</a>
+        <a routerLink="/partner/coinvault-finance" (click)="closeMenus()" class="block rounded-lg px-3 py-2.5 text-sm text-primary no-underline hover:bg-surface-2">Vendors</a>
+        <a routerLink="/testimonials-all" (click)="closeMenus()" class="block rounded-lg px-3 py-2.5 text-sm text-primary no-underline hover:bg-surface-2">Testimonials</a>
+        <a routerLink="/sign-up" (click)="closeMenus()" class="block rounded-lg px-3 py-2.5 text-sm text-primary no-underline hover:bg-surface-2">Register</a>
+
+        <a routerLink="/sign-in" (click)="closeMenus()" class="block rounded-lg px-3 py-2.5 text-sm text-primary no-underline hover:bg-surface-2 border-t border-border mt-1 pt-3">User Login</a>
+        <a routerLink="/agent-sign-in" (click)="closeMenus()" class="block rounded-lg px-3 py-2.5 text-sm text-primary no-underline hover:bg-surface-2">Vendor (Agent) Login</a>
+      </nav>
+    </aside>
+
+    <div *ngIf="desktopSignMenuOpen" class="hidden md:block fixed inset-0 z-40" (click)="closeMenus()"></div>
   `
 })
 export class NavbarComponent {
-  isScrolled = false;
+  mobileMenuOpen = false;
+  desktopSignMenuOpen = false;
 
-  constructor(public auth: AuthService) { }
+  constructor() { }
 
-  @HostListener('window:scroll', [])
-  onWindowScroll() {
-    this.isScrolled = window.scrollY > 20;
+  toggleMobileMenu(): void {
+    this.mobileMenuOpen = !this.mobileMenuOpen;
+    this.desktopSignMenuOpen = false;
+  }
+
+  toggleDesktopSignMenu(): void {
+    this.desktopSignMenuOpen = !this.desktopSignMenuOpen;
+  }
+
+  closeMenus(): void {
+    this.mobileMenuOpen = false;
+    this.desktopSignMenuOpen = false;
   }
 }

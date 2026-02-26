@@ -13,6 +13,8 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
     return next(req).pipe(
         catchError((error: HttpErrorResponse) => {
             let errorMessage = 'An unknown error occurred!';
+            const isAuthEntryRequest = /\/api\/(login|signup|register)\/?$/.test(req.url)
+                || /\/api\/agent\/(login|access)\/?$/.test(req.url);
 
             if (error.error instanceof ErrorEvent) {
                 // Client-side
@@ -20,9 +22,13 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
             } else {
                 // Server-side
                 if (error.status === 401) {
-                    auth.logout();
-                    router.navigate(['/']);
-                    errorMessage = 'Session expired. Please log in again.';
+                    if (isAuthEntryRequest) {
+                        errorMessage = error.error?.error || error.error?.detail || 'Invalid credentials.';
+                    } else {
+                        auth.logout();
+                        router.navigate(['/sign-in']);
+                        errorMessage = 'Session expired. Please log in again.';
+                    }
                 } else if (error.error && error.error.message) {
                     errorMessage = error.error.message;
                 } else {

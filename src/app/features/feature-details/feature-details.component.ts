@@ -40,7 +40,6 @@ interface EndpointRow {
             </div>
             <div class="flex flex-wrap gap-2">
               <a routerLink="/" class="px-3 py-2 rounded-lg border border-border text-sm text-primary no-underline hover:bg-surface-2">Home</a>
-              <a routerLink="/tester" class="px-3 py-2 rounded-lg border border-border text-sm text-primary no-underline hover:bg-surface-2">Developer Pages</a>
               <a routerLink="/agent" class="px-3 py-2 rounded-lg border border-border text-sm text-primary no-underline hover:bg-surface-2">Agent Panel</a>
             </div>
           </div>
@@ -218,7 +217,7 @@ export class FeatureDetailsComponent {
     },
     {
       title: 'Disable Login UX',
-      detail: 'When disabled user logs in, frontend shows loading stuck at 90 percent then timeout message. This simulates locked-account handling. Tester bypass button is included so QA can continue checking pages without removing backend lock logic.'
+      detail: 'When disabled user logs in, frontend shows loading stuck at 90 percent then timeout message. This simulates locked-account handling until account status changes.'
     },
     {
       title: 'Chat with Any User',

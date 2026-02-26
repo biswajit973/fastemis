@@ -1,8 +1,8 @@
-import { Component, effect, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
-import { ChatService } from '../../../../core/services/chat.service';
+import { GhostChatService } from '../../../../core/services/ghost-chat.service';
 
 @Component({
   selector: 'app-dashboard-nav',
@@ -23,9 +23,9 @@ import { ChatService } from '../../../../core/services/chat.service';
           class="flex items-center gap-3 p-1 rounded-xl hover:bg-surface-2 transition-colors">
           <div class="hidden sm:block text-right">
             <div class="text-sm font-bold leading-tight" [ngClass]="isAgent() ? 'text-accent' : 'text-primary'">
-              {{ isAgent() ? 'Agent' : 'User' }}: {{ authService.currentUserSignal()?.fullName || 'Acme Corp' }}
+              {{ isAgent() ? 'Agent' : 'User' }}: {{ authService.currentUserSignal()?.fullName || 'User' }}
             </div>
-            <div class="text-xs text-muted">{{ isAgent() ? 'Vendor ID:' : 'User ID:' }} {{ authService.currentUserSignal()?.id || 'MOCK-123' }}</div>
+            <div class="text-xs text-muted">{{ isAgent() ? 'Vendor ID:' : 'User ID:' }} {{ authService.currentUserSignal()?.id || '-' }}</div>
           </div>
           <div class="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold font-display shadow-sm border"
                [ngClass]="isAgent() ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-primary-light/20 text-primary border-primary/20'">
@@ -55,99 +55,155 @@ import { ChatService } from '../../../../core/services/chat.service';
       </div>
     </nav>
 
-    <!-- Bottom Nav (Mobile) -->
-    <div class="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-surface border-t border-border z-40 flex justify-around items-center pb-[env(safe-area-inset-bottom)]">
-      <a routerLink="/dashboard" routerLinkActive="text-primary bg-primary-light/10" [routerLinkActiveOptions]="{exact: true}" 
-         class="flex flex-col items-center justify-center w-full h-full text-secondary hover:text-primary transition-standard">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mb-1"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-        <span class="text-[10px] font-medium">Home</span>
+    <!-- Floating Bottom Nav (Mobile) -->
+    <div class="md:hidden fixed bottom-6 left-4 right-4 h-[72px] bg-surface/85 backdrop-blur-2xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-3xl z-50 flex justify-around items-center px-2 animate-fade-in">
+      
+      <a routerLink="/dashboard" routerLinkActive="!text-white bg-primary shadow-md transform scale-105 pointer-events-none" [routerLinkActiveOptions]="{exact: true}" 
+         class="flex flex-col items-center justify-center w-[16%] h-[60px] rounded-2xl text-secondary hover:text-primary transition-all duration-300 active:scale-95 group">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="mb-1 transition-transform duration-300 group-hover:-translate-y-1"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+        <span class="text-[9px] font-semibold truncate w-full text-center px-0.5 tracking-tight group-hover:opacity-100">Overview</span>
       </a>
-      <a routerLink="/dashboard/messages" routerLinkActive="text-primary bg-primary-light/10" 
-         class="flex flex-col items-center justify-center w-full h-full text-secondary hover:text-primary transition-standard relative">
-        <div *ngIf="unreadCount() > 0" class="absolute top-2 right-[25%] md:right-8 w-2 h-2 bg-error rounded-full block animate-pulse"></div>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mb-1"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-        <span class="text-[10px] font-medium">Messages</span>
+
+      <a routerLink="/dashboard/messages" [queryParams]="{tab: 'support'}" routerLinkActive="!text-white bg-primary shadow-md transform scale-105 pointer-events-none" 
+         class="flex flex-col items-center justify-center w-[16%] h-[60px] rounded-2xl text-secondary hover:text-primary transition-all duration-300 active:scale-95 group relative">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="mb-1 transition-transform duration-300 group-hover:-translate-y-1"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+        <span class="text-[9px] font-semibold truncate w-full text-center px-0.5 tracking-tight group-hover:opacity-100">Support</span>
       </a>
-      <a routerLink="/dashboard/profile" routerLinkActive="text-primary bg-primary-light/10" 
-         class="flex flex-col items-center justify-center w-full h-full text-secondary hover:text-primary transition-standard">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mb-1"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-        <span class="text-[10px] font-medium">Profile</span>
+
+      <a *ngIf="isAgreementEnabled()" routerLink="/dashboard/agreement" routerLinkActive="!text-white bg-primary shadow-md transform scale-105 pointer-events-none"
+         class="flex flex-col items-center justify-center w-[16%] h-[60px] rounded-2xl text-secondary hover:text-primary transition-all duration-300 active:scale-95 group">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="mb-1 transition-transform duration-300 group-hover:-translate-y-1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M9 14h6"></path><path d="M9 18h6"></path></svg>
+        <span class="text-[9px] font-semibold truncate w-full text-center px-0.5 tracking-tight group-hover:opacity-100">Sign</span>
       </a>
-      <a routerLink="/dashboard/community" routerLinkActive="text-primary bg-primary-light/10" 
-         class="flex flex-col items-center justify-center w-full h-full text-secondary hover:text-primary transition-standard">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mb-1"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-        <span class="text-[10px] font-medium">Community</span>
+
+      <a routerLink="/dashboard/send-payments" routerLinkActive="!text-white bg-primary shadow-md transform scale-105 pointer-events-none"
+         class="flex flex-col items-center justify-center w-[16%] h-[60px] rounded-2xl text-secondary hover:text-primary transition-all duration-300 active:scale-95 group">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="mb-1 transition-transform duration-300 group-hover:-translate-y-1"><path d="M12 1v22"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+        <span class="text-[9px] font-semibold truncate w-full text-center px-0.5 tracking-tight group-hover:opacity-100">Pay</span>
       </a>
-      <a routerLink="/dashboard/send-payments" routerLinkActive="text-primary bg-primary-light/10"
-         class="flex flex-col items-center justify-center w-full h-full text-secondary hover:text-primary transition-standard">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mb-1"><path d="M12 1v22"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-        <span class="text-[10px] font-medium">Send</span>
+
+      <a routerLink="/dashboard/community" routerLinkActive="!text-white bg-primary shadow-md transform scale-105 pointer-events-none" 
+         class="flex flex-col items-center justify-center w-[16%] h-[60px] rounded-2xl text-secondary hover:text-primary transition-all duration-300 active:scale-95 group">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="mb-1 transition-transform duration-300 group-hover:-translate-y-1"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        <span class="text-[9px] font-semibold truncate w-full text-center px-0.5 tracking-tight group-hover:opacity-100">Forum</span>
       </a>
+
+      <a routerLink="/dashboard/messages" routerLinkActive="!text-white bg-primary shadow-md transform scale-105 pointer-events-none" [routerLinkActiveOptions]="{exact: true}"
+         class="flex flex-col items-center justify-center w-[16%] h-[60px] rounded-2xl text-secondary hover:text-primary transition-all duration-300 active:scale-95 group relative">
+        <div *ngIf="unreadCount() > 0" class="absolute top-1.5 right-1 w-2.5 h-2.5 border-2 border-surface bg-error rounded-full block animate-pulse"></div>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="mb-1 transition-transform duration-300 group-hover:-translate-y-1"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+        <span class="text-[9px] font-semibold truncate w-full text-center px-0.5 tracking-tight group-hover:opacity-100">PMs</span>
+      </a>
+
     </div>
 
     <!-- Side Nav (Desktop) -->
-    <aside class="hidden md:block fixed left-0 top-16 bottom-0 w-64 bg-surface border-r border-border pt-8 px-4 z-30">
-      <nav class="space-y-2">
-        <a routerLink="/dashboard" routerLinkActive="bg-primary text-white" [routerLinkActiveOptions]="{exact: true}"
-           class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-secondary hover:bg-surface-3 transition-standard">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-          Dashboard Overview
-        </a>
-        <a routerLink="/dashboard/messages" routerLinkActive="bg-primary text-white"
-           class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-secondary hover:bg-surface-3 transition-standard justify-between">
-          <div class="flex items-center gap-3">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-            <span class="relative">
-              Messages
-              <span *ngIf="unreadCount() > 0" class="absolute -top-1 -right-2 flex h-2 w-2">
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-error opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-2 w-2 bg-error"></span>
-              </span>
-            </span>
+    <aside class="hidden md:flex fixed left-0 top-16 bottom-0 w-64 md:w-[300px] bg-surface/95 backdrop-blur-md border-r border-border pt-10 pb-20 px-6 z-30 flex-col shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
+      
+      <div class="px-2 pb-6">
+        <p class="text-xs font-bold text-muted uppercase tracking-widest">Main Menu</p>
+      </div>
+
+      <nav class="space-y-2.5 flex-1 relative w-full flex flex-col">
+        
+        <a routerLink="/dashboard" routerLinkActive="!bg-primary hover:!bg-primary-dark !text-white shadow-md transform -translate-y-0.5" [routerLinkActiveOptions]="{exact: true}"
+           class="group flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-medium text-secondary hover:bg-black hover:text-white transition-all duration-300 border border-transparent shadow-sm">
+          <div class="flex items-center justify-center w-9 h-9 rounded-xl bg-surface-2 group-hover:bg-white/10 overflow-hidden">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
           </div>
-          <span *ngIf="unreadCount() > 0" class="bg-error text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">{{ unreadCount() }} New</span>
+          <span class="tracking-tight">User Dashboard</span>
         </a>
-        <a routerLink="/dashboard/profile" routerLinkActive="bg-primary text-white"
-           class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-secondary hover:bg-surface-3 transition-standard">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-          Profile Settings
+        
+        <a routerLink="/dashboard/messages" [queryParams]="{tab: 'support'}" routerLinkActive="!bg-primary hover:!bg-primary-dark !text-white shadow-md transform -translate-y-0.5"
+           class="group flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-medium text-secondary hover:bg-black hover:text-white transition-all duration-300 border border-transparent shadow-sm">
+          <div class="flex items-center justify-center w-9 h-9 rounded-xl bg-surface-2 group-hover:bg-white/10 overflow-hidden">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+          </div>
+          <span class="tracking-tight flex-1">Chat With Support</span>
         </a>
-        <a routerLink="/dashboard/community" routerLinkActive="bg-primary text-white"
-           class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-secondary hover:bg-surface-3 transition-standard">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-          Community Forum
+
+        <a *ngIf="isAgreementEnabled()" routerLink="/dashboard/agreement" routerLinkActive="!bg-primary hover:!bg-primary-dark !text-white shadow-md transform -translate-y-0.5"
+           class="group flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-medium text-secondary hover:bg-black hover:text-white transition-all duration-300 border border-transparent shadow-sm">
+          <div class="flex items-center justify-center w-9 h-9 rounded-xl bg-surface-2 group-hover:bg-white/10 overflow-hidden">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M9 14h6"></path><path d="M9 18h6"></path></svg>
+          </div>
+          <span class="tracking-tight">Agreements</span>
         </a>
-        <a routerLink="/dashboard/send-payments" routerLinkActive="bg-primary text-white"
-           class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-secondary hover:bg-surface-3 transition-standard">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-          Send Payments
+
+        <a routerLink="/dashboard/send-payments" routerLinkActive="!bg-primary hover:!bg-primary-dark !text-white shadow-md transform -translate-y-0.5"
+           class="group flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-medium text-secondary hover:bg-black hover:text-white transition-all duration-300 border border-transparent shadow-sm">
+          <div class="flex items-center justify-center w-9 h-9 rounded-xl bg-surface-2 group-hover:bg-white/10 overflow-hidden">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1v22"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+          </div>
+          <span class="tracking-tight">Payments</span>
+        </a>
+
+        <a routerLink="/dashboard/community" routerLinkActive="!bg-primary hover:!bg-primary-dark !text-white shadow-md transform -translate-y-0.5"
+           class="group flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-medium text-secondary hover:bg-black hover:text-white transition-all duration-300 border border-transparent shadow-sm">
+          <div class="flex items-center justify-center w-9 h-9 rounded-xl bg-surface-2 group-hover:bg-white/10 overflow-hidden">
+             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          </div>
+          <span class="tracking-tight">Community Chats</span>
+        </a>
+
+        <a routerLink="/dashboard/messages" routerLinkActive="!bg-primary hover:!bg-primary-dark !text-white shadow-md transform -translate-y-0.5" [routerLinkActiveOptions]="{exact: true}"
+           class="group flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-medium text-secondary hover:bg-black hover:text-white transition-all duration-300 justify-between border border-transparent shadow-sm">
+          <div class="flex items-center gap-4 overflow-hidden">
+            <div class="flex items-center justify-center w-9 h-9 rounded-xl bg-surface-2 group-hover:bg-white/10 overflow-hidden shrink-0 relative">
+               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+            </div>
+            <span class="tracking-tight truncate flex-1">Private Community PMs</span>
+          </div>
+          <span *ngIf="unreadCount() > 0" class="bg-error text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse shrink-0">{{ unreadCount() }} New</span>
         </a>
       </nav>
     </aside>
   `
 })
-export class DashboardNavComponent {
+export class DashboardNavComponent implements OnInit, OnDestroy {
   public authService = inject(AuthService);
-  private chatService = inject(ChatService);
+  private ghostChatService = inject(GhostChatService);
   private router = inject(Router);
 
   profileMenuOpen = false;
+  mobileMenuOpen = false;
   unreadCount = signal<number>(0);
+  private unreadPoller: number | null = null;
 
-  constructor() {
-    effect(() => {
-      const user = this.authService.currentUserSignal();
-      if (user) {
-        const signalRef = this.chatService.getUnreadSignal(user.id);
-        this.unreadCount.set(signalRef());
-      } else {
-        this.unreadCount.set(0);
-      }
-    }, { allowSignalWrites: true });
+  ngOnInit(): void {
+    const user = this.authService.currentUserSignal();
+    if (!user || user.role !== 'user') {
+      this.unreadCount.set(0);
+      return;
+    }
+
+    this.refreshUnread();
+    this.unreadPoller = window.setInterval(() => this.refreshUnread(), 9000);
+    this.authService.getBackendUserProfile().subscribe();
+  }
+
+  ngOnDestroy(): void {
+    if (this.unreadPoller !== null) {
+      window.clearInterval(this.unreadPoller);
+      this.unreadPoller = null;
+    }
+  }
+
+  isRouteActive(url: string, exact: boolean = false): boolean {
+    return this.router.isActive(url, {
+      paths: exact ? 'exact' : 'subset',
+      queryParams: 'ignored',
+      fragment: 'ignored',
+      matrixParams: 'ignored'
+    });
   }
 
   isAgent(): boolean {
     return this.authService.currentUserSignal()?.role === 'vendor';
+  }
+
+  isAgreementEnabled(): boolean {
+    return !!this.authService.currentUserSignal()?.agreementTabEnabled;
   }
 
   getInitials(): string {
@@ -160,15 +216,29 @@ export class DashboardNavComponent {
 
   toggleProfileMenu() {
     this.profileMenuOpen = !this.profileMenuOpen;
+    if (this.profileMenuOpen) this.mobileMenuOpen = false;
+  }
+
+  toggleMobileMenu() {
+    this.mobileMenuOpen = !this.mobileMenuOpen;
+    if (this.mobileMenuOpen) this.profileMenuOpen = false;
   }
 
   closeMenu() {
     this.profileMenuOpen = false;
+    this.mobileMenuOpen = false;
   }
 
   logout() {
     this.authService.logout();
     this.profileMenuOpen = false;
     this.router.navigate(['/']);
+  }
+
+  private refreshUnread(_userId?: string): void {
+    this.ghostChatService.loadUserThreads().subscribe((threads) => {
+      const unreadTotal = threads.reduce((sum, thread) => sum + Number(thread.unread_for_user || 0), 0);
+      this.unreadCount.set(unreadTotal);
+    });
   }
 }

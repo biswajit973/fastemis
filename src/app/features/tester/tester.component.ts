@@ -55,12 +55,6 @@ interface ComponentGroup {
         <section class="rounded-2xl border border-border bg-surface p-5 shadow-sm">
           <h2 class="text-lg font-bold text-primary mb-3">Access Control Panel</h2>
           <div class="flex flex-wrap items-center gap-3">
-            <button (click)="bypassAsUser()" class="px-3 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:opacity-95 transition-opacity">
-              Login as User
-            </button>
-            <button (click)="bypassAsAgent()" class="px-3 py-2 rounded-lg border border-border text-primary text-sm font-medium hover:bg-surface-2 transition-colors">
-              Login as Agent
-            </button>
             <button (click)="clearSession()" class="px-3 py-2 rounded-lg border border-border text-secondary text-sm font-medium hover:bg-surface-2 transition-colors">
               Clear Session
             </button>
@@ -70,7 +64,7 @@ interface ComponentGroup {
             <a href="/sign-in" target="_blank" rel="noopener" class="px-3 py-2 rounded-lg border border-border text-primary text-sm font-medium hover:bg-surface-2 transition-colors no-underline">
               Real Login (New Tab)
             </a>
-            <span class="text-xs text-muted">Use bypass only for QA speed. Real login should also be tested.</span>
+            <span class="text-xs text-muted">Use real backend login for all flow testing.</span>
           </div>
         </section>
 
@@ -188,6 +182,14 @@ export class TesterComponent {
           notes: 'Use this page as backend handover reference.'
         },
         {
+          page: 'Testimonials All',
+          route: '/testimonials-all',
+          component: 'TestimonialsAllComponent',
+          access: 'Public',
+          testFocus: 'Horizontal video scroll, custom play/pause, default mute, and restricted media controls.',
+          notes: 'Video files sourced from src/app/mediaFiles/customervideos.'
+        },
+        {
           page: 'API Integration Test',
           route: '/tester/api',
           component: 'ApiTestComponent',
@@ -207,7 +209,7 @@ export class TesterComponent {
           route: '/partner/coinvault-finance/apply',
           component: 'ApplyComponent',
           access: 'Public',
-          testFocus: '5-step form, tester bypass toggle, KYC uploads, password setup, submit.',
+          testFocus: '5-step form, KYC uploads, password setup, submit.',
           notes: 'KYC now uses Aadhaar/PAN + live picture upload. OTP removed.'
         },
         {
@@ -224,7 +226,7 @@ export class TesterComponent {
           component: 'DashboardComponent',
           access: 'Auth required',
           testFocus: 'Status card only layout, Send Payments guidance message, notice marquee.',
-          notes: 'Use Login as User bypass or real login first.'
+          notes: 'Sign in first using real user credentials.'
         }
       ]
     },
@@ -302,7 +304,7 @@ export class TesterComponent {
           component: 'SignInComponent',
           access: 'Public',
           testFocus: 'Role tab = agent, login route to /agent.',
-          notes: 'Use for non-bypass verification of agent auth flow.'
+          notes: 'Uses backend passcode verification.'
         },
         {
           page: 'Agent Dashboard',
@@ -364,7 +366,8 @@ export class TesterComponent {
         'features/home/home.component.ts',
         'shared/components/navbar/navbar.component.ts',
         'features/home/sections/partner-grid/partner-grid.component.ts',
-        'features/home/sections/location-check/location-check.component.ts'
+        'features/home/sections/location-check/location-check.component.ts',
+        'features/testimonials-all/testimonials-all.component.ts'
       ]
     },
     {
@@ -414,32 +417,23 @@ export class TesterComponent {
   ];
 
   readonly devNotes: string[] = [
-    'Location permission is mandatory at startup overlay before app unlocks.',
+    'Location gate at startup was removed to reduce user friction.',
     'Only CoinVault is serviceable currently. Other partner routes are blocked by partner guard.',
     'CoinVault availability modal now splits flow into Existing User Login and New User Sign Up.',
-    'Apply flow has tester bypass toggle for step navigation, but submit still checks required data.',
+    'Apply flow follows real validation checks for every step.',
     'KYC step updated: Aadhaar number, PAN number, Aadhaar proof, PAN proof, and current live picture are required.',
     'OTP flow removed from signup stepper as requested.',
     'User dashboard is status-card-only and points users to Send Payments tab for all payments.',
-    'Disabled user trap shows timeout simulation with bypass button for QA recovery.',
+    'Disabled user trap shows timeout simulation from account control status.',
     'Send Payments supports rotating payment sets with user-specific over global priority and display logging.',
-    'All current auth/data flows are mock/local-storage based and structured for backend API replacement.'
+    'TestimonialsAll uses custom video controls with mute default and restricted native media actions.',
+    'Authentication now runs with Django endpoints via Angular proxy.'
   ];
 
   constructor(private auth: AuthService, private router: Router) { }
 
   openRoute(route: string): void {
     void this.router.navigateByUrl(route);
-  }
-
-  bypassAsUser(): void {
-    this.auth.mockLogin('user');
-    void this.router.navigate(['/dashboard']);
-  }
-
-  bypassAsAgent(): void {
-    this.auth.mockLogin('vendor');
-    void this.router.navigate(['/agent']);
   }
 
   clearSession(): void {

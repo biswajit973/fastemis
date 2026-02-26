@@ -1,0 +1,285 @@
+# Agent Notes - FastEMIs Project
+
+## Current auth status
+- User auth is now backend-driven:
+  - `POST /api/signup` for account creation.
+  - `POST /api/login` for user sign in.
+  - `GET /api/userprofile/` for user profile fetch.
+- Agent auth is backend passcode-only:
+  - `POST /api/agent/access`
+  - `POST /api/agent/login` (compat route)
+  - Passcode is fixed in backend as `7879` for user `Kratos`.
+
+## Frontend auth UX updates
+- `Create New Account` button added on sign-in page, opens `/sign-up`.
+- Demo credential blocks and demo-fill buttons removed from sign-in UI.
+- User sign-in now validates through Django, shows `Sign in successful.`, then:
+  - redirects to `/dashboard/complete-profile` if profile is incomplete,
+  - otherwise redirects to `/dashboard`.
+- Sign-up now creates account through backend and auto-signs in, then:
+  - redirects to `/dashboard/complete-profile` when profile is incomplete,
+  - otherwise redirects to `/dashboard`.
+- `/agent` is guard-protected; unauthenticated access redirects to vendor sign-in.
+- Global error handling updated:
+  - `401` on login/signup/passcode endpoints now shows backend auth error (invalid credentials) without forced logout.
+  - `401` on protected APIs still logs out and redirects to `/sign-in` with "Session expired" message.
+
+## Mandatory profile completion gate (new)
+- Added dedicated route: `/dashboard/complete-profile`.
+- Added `profileCompletionGuard` and applied it to user dashboard routes:
+  - `/dashboard`
+  - `/dashboard/messages`
+  - `/dashboard/profile`
+  - `/dashboard/community`
+  - `/dashboard/send-payments`
+  - `/dashboard/agreement`
+- Gate behavior:
+  - incomplete users are hard-redirected to `/dashboard/complete-profile`
+  - guard preserves original requested route in `?redirect=...`
+  - on successful completion save, user is returned to original target (or `/dashboard`)
+- Completion page implementation:
+  - sticky incomplete card with missing field count + soft pulse
+  - full mandatory KYC/profile form
+  - manual save only (`PATCH /api/userprofile/`, multipart)
+  - single submit with inline validation + backend field-level error mapping
+  - required files: Aadhaar proof, PAN proof, live photo
+  - spouse occupation required only when `marital_status = married`
+
+## User profile behavior
+- Profile page now reads from backend `GET /api/userprofile/` (with JWT from cookie).
+- Dashboard user can open `/dashboard/profile` and see their own signup fields.
+- Fallback to current session user data is used only if profile API fails.
+- Agent profile details page now renders real media previews for:
+  - Aadhaar proof, PAN proof, live photo, and other uploaded file URLs.
+  - inline image/video preview for quick verification, with lightweight lazy loading.
+
+## Latest chat UX + navigation refinement
+- Agent chat delete icon placement updated:
+  - icon now sits at outer top-right edge of message/media card border (no overlap on content).
+- Agent media gallery updates:
+  - each shared file now shows `Preview` button + shared date/time.
+  - delete icon remains sticky at card top-right for delete-for-everyone.
+  - tapping preview opens fullscreen modal for mobile clarity.
+- User messages media section also upgraded:
+  - preview button on shared media cards and message attachments.
+  - fullscreen viewer with timestamp for image/video/file readability.
+- Breadcrumb/quick access widget rebuilt:
+  - now fixed at top-right as compact quick-nav (lower UI obstruction).
+  - includes breadcrumb path + quick links list.
+  - role-aware visibility:
+    - user session: only user links.
+    - vendor/agent session: only agent links.
+    - public session: public links only.
+- Chat font update:
+  - integrated Google Sans via `index.html` preconnect + stylesheet link.
+  - applied Google Sans to both user and agent chat message text styles.
+
+## Latest agreement upgrade (agent + user)
+- User agreement tab visibility is now controlled by agent per user:
+  - backend field `agreement_tab_enabled` (default `False` for new users)
+  - agent API `PATCH /api/agent/agreements/user-visibility`
+  - user nav shows agreement link only when enabled
+  - guarded route blocks `/dashboard/agreement` when disabled
+- Agent agreement question editor:
+  - question ID is readonly in UI
+  - description remains editable and syncs to user side by same ID
+  - yes/no answer type remains fixed
+- User agreement completion flow now requires:
+  - answers for all active question IDs
+  - digital signature (mouse/touch canvas)
+  - consent video (camera/direct capture), max 60s client validation
+- New endpoint:
+  - `POST /api/agreements/complete` (multipart) to finalize agreement in one save operation
+- Completion lock behavior:
+  - after successful completion, agreement becomes readonly for user
+  - UI switches to preview mode for signature/video
+  - no further edits allowed
+- Agent reset behavior expanded:
+  - reset now clears answers + signature file + consent video + completion timestamp
+- New migration:
+  - `0007_customuser_agreement_completed_at_and_more`
+
+## Latest community + ghost chat upgrade
+- Latest backend stability fix (Feb 25, 2026):
+  - removed runtime calls to `ensure_default_personas()` from live API paths to prevent concurrent auto-seed races.
+  - root cause addressed:
+    - repeated polling + ghost delete operations were triggering duplicate default inserts, causing `UNIQUE constraint failed: myapp_communitypersona.ghost_id`.
+  - updated behavior:
+    - ghost members are now only what agent creates/manages (no automatic default reinsert on feed/persona GET).
+  - reduced SQLite lock pressure:
+    - stopped writing `last_seen_at` inside `GET /api/community/feed` (was a write on every poll request).
+    - set SQLite timeout to 20 seconds in Django DB settings.
+  - ghost member create API hardening:
+    - `POST /api/community/ghost-members` now catches DB `IntegrityError` and returns HTTP 400 with clear message instead of failing silently in UI.
+- Latest step (community bugfix phase: shared UI + strict identity rules):
+  - `/agent/community` now renders the same component used by user community (`CommunityComponent`) to keep layout/message styling consistent.
+  - Community page scope for this phase is public feed only:
+    - private-reply CTA removed from community UI.
+  - Role behavior in the same composer:
+    - user: normal real-name posting flow.
+    - vendor/agent: must choose ghost identity from dropdown before send.
+    - send is blocked when no ghost member is selected.
+    - selected ghost resets after successful post (explicit selection per message).
+    - added UX feedback:
+      - warning toast when agent presses send without selecting ghost member
+      - error toast on failed post API response
+  - Added dedicated ghost management route:
+    - `/agent/ghost-setup`
+    - supports create/edit/delete ghost members and detail updates.
+  - Ghost setup UX fix:
+    - create/update/delete now shows exact toast feedback for required fields, duplicates, and API errors.
+  - Agent navbar now includes `Ghost Setup` for direct access.
+- Latest stabilization (Ghost Member identity lock + routing):
+  - `CommunityPersona` now includes stable identity fields:
+    - `ghost_id` (unique routing key)
+    - `identity_tag`
+    - `info` (max 220 chars)
+  - Added migration:
+    - `0010_communitypersona_ghost_id_and_more`
+  - New ghost member APIs (agent):
+    - `GET/POST /api/community/ghost-members`
+    - `PATCH/DELETE /api/community/ghost-members/:id`
+  - New private-thread route from public community post:
+    - `POST /api/ghost-chats/threads/from-community`
+    - works only for ghost-authored posts; returns validation error for real-user posts
+  - Agent community reply now requires selected `ghost_member_id` for deterministic identity.
+  - User/agent community + private chat now show ghost `info` directly under display name.
+  - User community avatar now also exposes ghost details via native tooltip (`name + info`) for quick hover/tap preview.
+- Latest refinement (community member control + WhatsApp-style UX):
+  - Added backend `CommunitySettings` with migration `0009_communitypost_media_file_communitypost_media_name_and_more`.
+  - New endpoint `GET/PATCH /api/community/settings`:
+    - agent can control group header title and displayed active members count.
+    - user community header now consumes this dynamically.
+  - Community posts now support media upload:
+    - `POST /api/community/feed` accepts multipart (`content` or media).
+    - feed response returns `mediaUrl` and `mediaName`.
+  - User `/dashboard/community` restyled as WhatsApp-like public group experience:
+    - group-style header with dynamic `(members active: N)`
+    - sticky bottom composer (attach + send)
+    - persona reply buttons mapped to private DM thread creation.
+  - Agent `/agent/chats/:threadId` improvements:
+    - explicit labels for real user + persona thread
+    - delete entire private chat directly from thread view
+    - sender labels fixed so agent sees actual user identity on inbound messages.
+- Public community is now backend-powered (no mock runtime feed):
+  - users post public questions to `/api/community/feed`
+  - agent replies publicly using managed personas
+  - persona directory is API-driven (`/api/community/personas`)
+- Private chats are now persona-threaded:
+  - user dashboard `/dashboard/messages` shows `Private Chats` (thread per persona)
+  - agent dashboard `/agent/chats` shows `Ghost Chats` (internal label)
+  - each private thread is persona-locked by default; agent can override with admin override
+  - message routing is always user -> agent backend, with persona-consistent agent replies
+- Safety policy enforcement:
+  - frontend warns in real-time when phone/email is typed
+  - backend masks restricted contact details in both public feed and private chats
+  - moderation actions are logged in `ModerationEvent`
+- New backend migration:
+  - `0008_communitypersona_ghostchatthread_ghostchatmessage_and_more`
+
+## Bypass/demo UI cleanup
+- Removed sign-in demo credentials UI.
+- Removed apply stepper tester bypass toggle and bypass logic.
+- Removed dashboard "Bypass Connection Timeout" button.
+- Removed tester-page bypass login buttons (only real login links remain).
+
+## Routes summary
+- Public:
+  - `/`
+  - `/sign-in`
+  - `/sign-up`
+  - `/partner/:slug`
+  - `/partner/:slug/apply`
+  - `/feature-details`
+  - `/testimonials-all`
+- User (auth):
+  - `/dashboard/complete-profile`
+  - `/dashboard`
+  - `/dashboard/profile`
+  - `/dashboard/send-payments`
+  - `/dashboard/messages`
+  - `/dashboard/community`
+  - `/dashboard/agreement`
+- Agent (auth):
+  - `/agent`
+  - `/agent/applications/:id`
+  - `/agent/chats`
+  - `/agent/chats/:userId`
+  - `/agent/community`
+  - `/agent/payments`
+  - `/agent/agreements`
+
+## Backend notes
+- New backend view `UserSignupView` issues JWT on successful signup.
+- Existing `UserLoginView` now returns:
+  - `role`, `mobile_number`
+  - `profile_complete`, `profile_progress`, `missing_fields`
+- `UserSignupView` and `AgentAccessView` use the same enriched user payload builder.
+- `GET /api/userprofile/` now returns completion metadata:
+  - `profile_complete`, `profile_progress`, `missing_fields`
+- Added `PATCH /api/userprofile/` for manual profile completion updates (multipart supported).
+- Added `spouse_occupation` to backend user model (migration created and applied).
+- Added backend chat APIs + storage (polling architecture, no websocket):
+  - threads/messages/media/alias/presence/delete-for-everyone flows are API-driven.
+  - agent sees user `last_login` and active-now via `last_seen_at`.
+- Added chat thread management enhancements:
+  - `PATCH /api/chat/threads/:user_id` -> mark/unmark favorite chat.
+  - `DELETE /api/chat/threads/:user_id` -> delete full conversation for that user.
+  - `GET /api/chat/threads?search=...` -> search by name/number/email.
+  - favorites are sorted at top in thread list.
+- Added backend global payment configuration APIs (agent-controlled):
+  - `POST /api/agent/payments/global` (multipart: QR image + bank details)
+  - `GET /api/agent/payments/global` (active global entries for agent)
+  - `DELETE /api/agent/payments/global/:config_id` (manual delete before expiry)
+  - `GET /api/payments/global/active` (user/agent fetch active global payment payload)
+- Added backend agreement management APIs (single set, max 20 IDs):
+  - `GET /api/agent/agreements/questions`
+  - `POST /api/agent/agreements/questions` (upsert by `questionId`, max 20, yes/no answer type)
+  - `POST /api/agent/agreements/reset-user` (`user_id`) to clear one user’s agreement answers
+  - `GET /api/agreements/questions` (user view with `answer` + `readonly` per question)
+  - `POST /api/agreements/answers` (user submits unanswered IDs only)
+- Global payment validity rules now enforced server-side:
+  - each uploaded global payment config expires in exactly **5 minutes** from upload time
+  - expired configs are auto-purged on API access
+  - uploading a new global config replaces existing active global config
+- Added agreement DB schema and migration:
+  - `AgreementQuestion` (question_id 1..20, editable description, active flag)
+  - `AgreementAnswer` (unique per user + question)
+  - migration: `0005_agreementquestion_agreementanswer`
+- Proxy is configured for Angular dev server to route `/api` and `/media` to Django.
+- Added backend payment template + transaction APIs:
+  - `GET /api/agent/payments/templates` -> last 24h template cards.
+  - `POST /api/agent/payments/templates/:id` -> implement template as active global payment config.
+  - `DELETE /api/agent/payments/templates/:id` -> remove template.
+  - `GET /api/payments/transactions` -> user transaction history.
+  - `POST /api/payments/transactions` -> user payment proof upload + transaction ID.
+  - `GET /api/agent/payments/transactions` -> agent transaction logs with user details.
+  - `PATCH /api/agent/payments/transactions/:id` -> approve/deny.
+  - `DELETE /api/agent/payments/transactions/:id` -> remove transaction record.
+- Global payment update flexibility:
+  - agent can now submit QR only, bank only, or both.
+  - if bank is used, required bank fields are validated as a complete set.
+  - each update is stored as a reusable template (24h window).
+- Manual QA reset performed: all rows in `myapp_customuser` were deleted for clean-start testing (current user count set to `0`).
+- Dev-only auth mode update:
+  - Password hashing is disabled for `CustomUser` creation.
+  - User login now uses direct DB password string comparison (plain text).
+  - Agent passcode verification also uses direct plain text comparison.
+  - This is temporary for testing/DB visibility and must be reverted before production.
+- Latest DB reset performed:
+  - Deleted all user rows from `myapp_customuser`.
+  - Deleted JWT blacklist tables (`OutstandingToken`, `BlacklistedToken`) for clean auth testing.
+
+## Pending backend integration areas
+- Remaining areas still using frontend runtime/mock state:
+  - full user-specific payment overrides + payment display logs + payment transactions history persistence
+  - some application-state/status flows in dashboard/agent tools
+- Agreement feature frontend status:
+  - agent now has dedicated `/agent/agreements` editor
+  - user agreement page now renders backend questions by ID with yes/no radios
+  - already-answered items are readonly on user side
+  - if agent edits same question ID description, user side reflects updated text
+
+- Bugfix (Feb 25, 2026): fixed serializer null-file checks in has-value/format-value helpers to prevent 500 on agent user detail when file fields are empty.
+
+- UX fix (Agreement page): removed `no-scroll` lock on container/body, improved long-form readability with book-style section cards, and changed bottom action bar from fixed to sticky for reliable scrolling on mobile.
