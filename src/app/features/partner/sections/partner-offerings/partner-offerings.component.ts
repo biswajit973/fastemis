@@ -22,7 +22,7 @@ import { Partner } from '../../../../core/models/partner.model';
             <ul class="space-y-3 mb-6">
               <li class="flex justify-between items-center text-sm border-b border-border pb-2">
                 <span class="text-secondary">Amount</span>
-                <span class="font-mono font-medium text-primary">$500 - $10k</span>
+                <span class="font-mono font-medium text-primary">₹2,000 - ₹5,000</span>
               </li>
               <li class="flex justify-between items-center text-sm border-b border-border pb-2">
                 <span class="text-secondary">Processing Fee</span>
@@ -44,7 +44,7 @@ import { Partner } from '../../../../core/models/partner.model';
             <ul class="space-y-3 mb-6">
               <li class="flex justify-between items-center text-sm border-b border-border pb-2">
                 <span class="text-secondary">Amount</span>
-                <span class="font-mono font-medium text-primary">$3,000 - $ {{ partner ? (partner.max_amount / 1000) : 10 }}k</span>
+                <span class="font-mono font-medium text-primary">₹5,000 - ₹10,000</span>
               </li>
               <li class="flex justify-between items-center text-sm border-b border-border pb-2">
                 <span class="text-secondary">Processing Fee</span>
@@ -65,7 +65,7 @@ import { Partner } from '../../../../core/models/partner.model';
             <ul class="space-y-3 mb-6">
               <li class="flex justify-between items-center text-sm border-b border-border pb-2">
                 <span class="text-secondary">Amount</span>
-                <span class="font-mono font-medium text-primary">$5,000 - $ {{ partner ? (partner.max_amount / 1000) : 10 }}k</span>
+                <span class="font-mono font-medium text-primary">₹10,000 - ₹20,000</span>
               </li>
               <li class="flex justify-between items-center text-sm border-b border-border pb-2">
                 <span class="text-secondary">Processing Fee</span>

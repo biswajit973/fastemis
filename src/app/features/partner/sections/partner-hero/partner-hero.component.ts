@@ -30,10 +30,17 @@ import { CurrencyGlobalPipe } from '../../../../shared/pipes/custom.pipes';
             Zero Processing Fee.*
           </h1>
           
-          <p class="text-white/80 text-lg md:text-xl max-w-xl mb-8">
+          <p class="text-white/80 text-lg md:text-xl max-w-xl mb-6">
             Trusted by {{ partner?.review_count | number }} customers across India.<br/>
             RBI Compliant • NBFC Registered • Est. {{ partner?.founded_year }}
           </p>
+          
+          <div *ngIf="partner?.slug === 'coinvault-finance'" class="mb-8 p-4 rounded-xl bg-white/10 border border-white/20 backdrop-blur-sm transform transition-all hover:bg-white/15">
+            <p class="text-white font-medium text-sm md:text-base leading-relaxed">
+              Flexible EMI plans in INR starts from just <span class="font-bold text-accent-400">₹2000/month</span> goes upto <span class="font-bold text-accent-400">₹20000/month</span>. 
+              Duration <span class="font-bold text-white">6 months , 1 year , 2 year</span> based on your eligibility criteria.
+            </p>
+          </div>
           
           <div class="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
             <app-button variant="primary" [fullWidth]="false" 

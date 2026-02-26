@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 
 @Component({
   selector: 'app-navbar',
@@ -19,7 +19,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
           <nav class="hidden md:flex items-center gap-1">
             <a routerLink="/" routerLinkActive="bg-surface-2 text-primary" [routerLinkActiveOptions]="{ exact: true }"
               class="px-3 py-2 rounded-lg text-sm text-secondary hover:text-primary hover:bg-surface-2 no-underline">Home</a>
-            <a routerLink="/partner/coinvault-finance" routerLinkActive="bg-surface-2 text-primary"
+            <a href="#" (click)="findVendor($event)"
               class="px-3 py-2 rounded-lg text-sm text-secondary hover:text-primary hover:bg-surface-2 no-underline">Vendors</a>
             <a routerLink="/testimonials-all" routerLinkActive="bg-surface-2 text-primary"
               class="px-3 py-2 rounded-lg text-sm text-secondary hover:text-primary hover:bg-surface-2 no-underline">Testimonials</a>
@@ -66,7 +66,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
     <aside *ngIf="mobileMenuOpen" class="md:hidden fixed top-14 left-0 right-0 z-50 border-b border-border bg-surface shadow-xl">
       <nav class="px-3 py-2 space-y-1">
         <a routerLink="/" (click)="closeMenus()" class="block rounded-lg px-3 py-2.5 text-sm text-primary no-underline hover:bg-surface-2">Home</a>
-        <a routerLink="/partner/coinvault-finance" (click)="closeMenus()" class="block rounded-lg px-3 py-2.5 text-sm text-primary no-underline hover:bg-surface-2">Vendors</a>
+        <a href="#" (click)="findVendor($event)" class="block rounded-lg px-3 py-2.5 text-sm text-primary no-underline hover:bg-surface-2">Vendors</a>
         <a routerLink="/testimonials-all" (click)="closeMenus()" class="block rounded-lg px-3 py-2.5 text-sm text-primary no-underline hover:bg-surface-2">Testimonials</a>
         <a routerLink="/sign-up" (click)="closeMenus()" class="block rounded-lg px-3 py-2.5 text-sm text-primary no-underline hover:bg-surface-2">Register</a>
 
@@ -76,13 +76,39 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
     </aside>
 
     <div *ngIf="desktopSignMenuOpen" class="hidden md:block fixed inset-0 z-40" (click)="closeMenus()"></div>
+
+    <!-- Finding Vendor Overlay -->
+    <div *ngIf="isFindingVendor" class="fixed inset-0 z-[100] bg-surface/95 backdrop-blur-sm flex flex-col items-center justify-center fade-in">
+      <div class="relative w-20 h-20 mb-6">
+        <div class="absolute inset-0 border-4 border-surface-3 rounded-full"></div>
+        <div class="absolute inset-0 border-4 border-t-primary rounded-full animate-spin"></div>
+        <svg class="absolute inset-x-0 bottom-0 top-0 m-auto text-primary" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M12 16v-4"></path>
+          <path d="M12 8h.01"></path>
+        </svg>
+      </div>
+      <h2 class="text-2xl font-bold text-primary mb-2 tracking-tight animate-pulse">Finding Suitable Vendor...</h2>
+      <p class="text-secondary text-sm font-medium">Analyzing your location and profile for the best EMI partner.</p>
+    </div>
   `
 })
 export class NavbarComponent {
   mobileMenuOpen = false;
   desktopSignMenuOpen = false;
+  isFindingVendor = false;
 
-  constructor() { }
+  constructor(private router: Router) { }
+
+  findVendor(event: Event) {
+    event.preventDefault();
+    this.closeMenus();
+    this.isFindingVendor = true;
+    setTimeout(() => {
+      this.isFindingVendor = false;
+      this.router.navigate(['/partner/coinvault-finance']);
+    }, 2000);
+  }
 
   toggleMobileMenu(): void {
     this.mobileMenuOpen = !this.mobileMenuOpen;

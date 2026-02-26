@@ -1,5 +1,5 @@
-import { Component, ElementRef, QueryList, ViewChildren, AfterViewInit, OnInit, OnDestroy, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, ElementRef, QueryList, ViewChildren, AfterViewInit, OnInit, OnDestroy, signal, Inject, PLATFORM_ID, ViewChild } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 
 @Component({
@@ -47,7 +47,7 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
     }
   `],
   template: `
-    <section class="pt-24 pb-12 md:pt-32 md:pb-20 relative overflow-hidden">
+    <section #heroSection class="pt-24 pb-12 md:pt-32 md:pb-20 relative overflow-hidden">
       <!-- Background SVG abstraction -->
       <div class="absolute inset-0 z-0 opacity-40 pointer-events-none">
         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
@@ -214,6 +214,10 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
 })
 export class HomeHeroComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChildren('heroVideoEl') private videoEls!: QueryList<ElementRef<HTMLVideoElement>>;
+  @ViewChild('heroSection') private heroSection!: ElementRef<HTMLElement>;
+
+  private observer: IntersectionObserver | null = null;
+  private isIntersecting = true;
 
   private readonly rawHeroVideos = [
     { id: 'h1', fileUrl: '/mediaFiles/customervideos/Ratikanta.mp4', name: 'Ratikanta M.', quote: 'The instant EMI process entirely online changed everything. No branch visits!' },
@@ -244,6 +248,8 @@ export class HomeHeroComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private autoPlayTimer: any;
   private isHoverPaused = false;
+
+  constructor(@Inject(PLATFORM_ID) private platformId: Object) { }
 
   async ngOnInit(): Promise<void> {
     const valid = [];
@@ -280,16 +286,45 @@ export class HomeHeroComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit(): void {
-    // Moved to ngOnInit after layout validation settles
+    if (isPlatformBrowser(this.platformId) && this.heroSection) {
+      this.observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (!entry.isIntersecting) {
+              // Scrolled out of view - hard pause everything
+              this.isIntersecting = false;
+              this.clearAutoCarousel();
+              // Stop playback of all videos immediately to stop audio bleed
+              this.videoEls?.forEach(ref => {
+                ref.nativeElement.pause();
+              });
+              this.isPlaying.set(false);
+            } else {
+              // Scrolled into view
+              this.isIntersecting = true;
+              if (!this.isHoverPaused && this.validVideos().length > 0) {
+                this.playActiveVideo();
+                this.startAutoCarousel();
+              }
+            }
+          });
+        },
+        { threshold: 0.1 } // Trigger when 10% is visible
+      );
+      this.observer.observe(this.heroSection.nativeElement);
+    }
   }
 
   ngOnDestroy(): void {
     this.clearAutoCarousel();
+    if (this.observer) {
+      this.observer.disconnect();
+    }
   }
 
   startAutoCarousel() {
     this.clearAutoCarousel();
-    if (this.validVideos().length <= 1) return; // No point carouseling 0 or 1 video
+    if (this.validVideos().length <= 1 || !this.isIntersecting) return; // No point carouseling 0 or 1 video
 
     if (!this.isHoverPaused) {
       // Advances every 5 seconds if the video hasn't ended naturally
@@ -321,7 +356,7 @@ export class HomeHeroComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   playActiveVideo() {
-    if (this.validVideos().length === 0) return;
+    if (this.validVideos().length === 0 || !this.isIntersecting) return;
     this.isPlaying.set(true);
     this.videoEls.forEach((ref, index) => {
       const video = ref.nativeElement;
