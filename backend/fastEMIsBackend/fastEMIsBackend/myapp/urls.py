@@ -1,5 +1,4 @@
 from django.urls import path
-from rest_framework_simplejwt.views import TokenRefreshView
 from . import views 
 
 urlpatterns = [
@@ -87,7 +86,7 @@ urlpatterns = [
     path('api/agreements/complete', views.UserAgreementCompleteView.as_view(), name='user-agreement-complete'),
     path('api/agreements/complete/', views.UserAgreementCompleteView.as_view(), name='user-agreement-complete-slash'),
     path('api/logout',views.LogoutView.as_view(),name='user-logout'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/token/refresh/', views.AgentTokenRefreshView.as_view(), name='token_refresh'),
     path('api/userprofile/', views.UserProfileView.as_view(), name='user-profile'),
     path('api/location/capture', views.UserLocationCaptureView.as_view(), name='user-location-capture'),
     path('api/location/capture/', views.UserLocationCaptureView.as_view(), name='user-location-capture-slash'),

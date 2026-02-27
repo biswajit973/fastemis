@@ -201,7 +201,11 @@ export class AuthService {
         if (!cleanPasscode) {
             return of({ success: false, message: 'Passcode is required.' });
         }
+        if (!/^\d{6}$/.test(cleanPasscode)) {
+            return of({ success: false, message: 'Passcode must be exactly 6 digits.' });
+        }
 
+        // Keep agent auth on same local API origin as the rest of app APIs.
         return this.http.post<BackendAuthResponse>('/api/agent/access', {
             passcode: cleanPasscode
         }).pipe(

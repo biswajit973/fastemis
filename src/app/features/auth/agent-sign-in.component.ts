@@ -19,10 +19,10 @@ import { NavbarComponent } from '../../shared/components/navbar/navbar.component
 
           <p class="text-center text-[11px] uppercase tracking-[0.15em] text-secondary">Vendor Agent Login</p>
           <h1 class="mt-2 text-center text-3xl font-semibold text-primary">Enter Passcode</h1>
-          <p class="mt-1 text-center text-sm text-secondary">Logged in as Kratos</p>
+          <p class="mt-1 text-center text-sm text-secondary">Logged in as Agent</p>
 
           <div class="mt-6 flex items-center justify-center gap-3">
-            <span *ngFor="let idx of [0,1,2,3]"
+            <span *ngFor="let idx of [0,1,2,3,4,5]"
               class="h-3.5 w-3.5 rounded-full border border-[#a7b6cf] transition-all"
               [class.bg-primary]="passcode().length > idx"
               [class.bg-transparent]="passcode().length <= idx">
@@ -34,11 +34,11 @@ import { NavbarComponent } from '../../shared/components/navbar/navbar.component
             type="password"
             inputmode="numeric"
             autocomplete="one-time-code"
-            maxlength="4"
+            maxlength="6"
             [value]="passcode()"
             (input)="onInputChange($event)"
             class="mt-5 w-full rounded-xl border border-[#cdd8ea] bg-[#f3f6fb] px-3 py-3 text-center tracking-[0.4em] text-lg outline-none shadow-[inset_4px_4px_10px_rgba(15,38,75,0.08),_inset_-4px_-4px_10px_rgba(255,255,255,0.95)]"
-            placeholder="••••" />
+            placeholder="••••••" />
 
           <p *ngIf="errorMessage()" class="mt-4 rounded-xl border border-red-300/70 bg-red-50 px-3 py-2 text-sm text-red-700">
             {{ errorMessage() }}
@@ -63,7 +63,7 @@ import { NavbarComponent } from '../../shared/components/navbar/navbar.component
             </button>
           </div>
 
-          <button type="button" (click)="submit()" [disabled]="submitting() || passcode().length !== 4"
+          <button type="button" (click)="submit()" [disabled]="submitting() || passcode().length !== 6"
             class="mt-4 w-full rounded-xl bg-primary text-white py-3 font-semibold disabled:opacity-55 shadow-[10px_10px_20px_rgba(15,38,75,0.18)]">
             {{ submitting() ? 'Verifying...' : 'Unlock Agent Panel' }}
           </button>
@@ -103,7 +103,7 @@ export class AgentSignInComponent implements OnInit, AfterViewInit {
   }
 
   onKeyPress(digit: string): void {
-    if (this.passcode().length >= 4) {
+    if (this.passcode().length >= 6) {
       return;
     }
     if (!/^\d$/.test(digit)) {
@@ -118,7 +118,7 @@ export class AgentSignInComponent implements OnInit, AfterViewInit {
   onInputChange(event: Event): void {
     const input = event.target as HTMLInputElement;
     const raw = String(input.value || '');
-    const numeric = raw.replace(/\D/g, '').slice(0, 4);
+    const numeric = raw.replace(/\D/g, '').slice(0, 6);
     this.passcode.set(numeric);
     this.errorMessage.set('');
     this.tryAutoSubmit();
@@ -137,7 +137,7 @@ export class AgentSignInComponent implements OnInit, AfterViewInit {
   }
 
   submit(): void {
-    if (this.submitting() || this.passcode().length !== 4) {
+    if (this.submitting() || this.passcode().length !== 6) {
       return;
     }
 
@@ -187,7 +187,7 @@ export class AgentSignInComponent implements OnInit, AfterViewInit {
   }
 
   private tryAutoSubmit(): void {
-    if (this.passcode().length === 4) {
+    if (this.passcode().length === 6) {
       this.submit();
     }
   }

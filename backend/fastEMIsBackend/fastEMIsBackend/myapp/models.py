@@ -59,6 +59,8 @@ class CustomUser(AbstractBaseUser):
     last_location_captured_at = models.DateTimeField(null=True, blank=True, db_index=True)
     assigned_agent_name = models.CharField(null=True, blank=True, max_length=120)
     is_chat_favorite = models.BooleanField(default=False, db_index=True)
+    active_agent_access_jti = models.CharField(max_length=80, null=True, blank=True, db_index=True)
+    active_agent_refresh_jti = models.CharField(max_length=80, null=True, blank=True, db_index=True)
     
     email = models.EmailField(
         max_length=255,

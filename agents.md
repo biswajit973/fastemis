@@ -1,6 +1,118 @@
 # agents.md
 
 ## Frontend Updates
+- Latest (Agent auto-logout redirect polish for single-session handling):
+  - updated global `401` interceptor handling to route by current role:
+    - vendor/agent sessions now redirect to `/agent-sign-in`
+    - user sessions continue redirecting to `/sign-in`
+  - prevents agent users from being sent to user login page after forced session expiry.
+- Latest (Agent login passcode + identity label update):
+  - agent login passcode UI updated from 4-digit to 6-digit flow.
+  - passcode length checks now enforce exactly 6 numeric digits (frontend validation + auto-submit on 6th digit).
+  - login input updated to 6 indicators, `maxlength=6`, and six-dot placeholder.
+  - agent login subtitle changed from `Logged in as Kratos` to `Logged in as Agent`.
+  - frontend auth service now validates 6-digit agent passcode before API call.
+- Latest (Raw HTML error-toast cleanup):
+  - fixed global HTTP error formatting to prevent HTML pages/debug markup from appearing in user toasts.
+  - `error.interceptor` now:
+    - detects HTML payloads and replaces them with clean generic error text
+    - normalizes whitespace-heavy payloads
+    - keeps DRF field errors readable
+  - added expected-error suppression for `/api/partners` `404`:
+    - this route intentionally falls back to local `assets/data/partners.json`
+    - no noisy toast is shown for that fallback path.
+- Latest (Quick reset footer compact icon mode):
+  - replaced large footer reset panel with a tiny bottom-right delete icon.
+  - removed typed `DELETE` input flow to reduce UI clutter.
+  - click icon -> confirmation popup -> clears session/cookies/cache/storage/service-worker/indexedDB and reloads app.
+  - preserves reset functionality while keeping UI minimal on mobile and desktop.
+- Latest (Agent profile media preview/download enhancement):
+  - updated `/agent/applications/:id?tab=profile` media cells to include explicit actions:
+    - `Preview` (enlarge in fullscreen modal)
+    - `Download` (direct file download/open save dialog)
+  - applied for both mobile card layout and desktop table layout.
+  - fullscreen preview supports:
+    - images (large fit view)
+    - videos (playable in modal)
+    - embeddable files (`pdf`, `txt`) via iframe
+    - non-embeddable files fallback with `Open File` + `Download`.
+  - improves agent verification workflow for Aadhaar/PAN/live photo and other uploaded docs.
+- Latest (Cross-tab `403 Forbidden` token mismatch fix):
+  - fixed JWT selection order in `auth.interceptor`:
+    - from: `cookie -> session`
+    - to: `session -> cookie`
+  - root cause:
+    - when user and agent were logged in across different tabs, shared cookie token could override the active tab session token.
+    - this sent user JWT to agent endpoints (for example `/api/agent/users`) and caused intermittent `403 Forbidden` + empty agent dashboard.
+  - result:
+    - active tab now consistently uses its own session JWT, preventing role-token collision during agent flows.
+- Latest (Agent dashboard empty/403 root-cause fix):
+  - fixed `AuthService.loginAgentViaBackend()` to call local proxied endpoint:
+    - from: `${environment.apiUrl}/api/agent/access`
+    - to: `/api/agent/access`
+  - root cause:
+    - agent login was using a different backend origin than dashboard data APIs (`/api/agent/users`), causing token/role mismatch and `403 Forbidden` in agent dashboard after user login flows.
+  - added small 403 guard in `AgentUserApiService.loadUsers()`:
+    - clears stale agent user list state on forbidden responses to avoid misleading stale UI.
+- Latest (Global quick reset footer):
+  - added a global footer utility in `AppComponent` for fast clean-start testing.
+  - flow: user types `DELETE` and taps `Clear Session + Cache`.
+  - reset action now clears:
+    - auth state and runtime store
+    - localStorage + sessionStorage
+    - current-domain cookies
+    - Cache Storage entries
+    - registered service workers
+    - best-effort IndexedDB databases (when browser API is available)
+  - after cleanup, app redirects to `/` for a fresh session.
+  - mobile-friendly compact layout; hidden while welcome overlay is active.
+- Latest (Community chronological ordering fix):
+  - updated shared `CommunityService` feed ordering so public messages always render in chronological order:
+    - oldest message at top
+    - latest message at bottom
+  - applied at both load-time and optimistic updates to keep ordering stable after send/refresh.
+  - this automatically fixes ordering in both user and agent community chat pages (shared component/service).
+- Latest (Ghost setup 400 validation visibility + input hardening):
+  - fixed global API error surfacing in `error.interceptor`:
+    - now parses DRF field-level errors (e.g., `ghost_id`, `identity_tag`) instead of only generic `Http failure response`.
+    - rethrows original `HttpErrorResponse` so feature services can parse exact backend validation payloads.
+  - hardened ghost member creation input path:
+    - `CommunityService.createGhostMember()` now normalizes `ghost_id` before submit (lowercase + safe chars + 40-char cap) and performs preflight required checks.
+    - returns clear inline action errors for missing/invalid `display_name`, `ghost_id`, `identity_tag`.
+  - improved `/agent/ghost-setup` UX:
+    - added inline error panel bound to `communityService.actionError`.
+    - added ghost-id format guidance (`[A-Za-z0-9_-]{3,40}`).
+    - added blur-time ghost-id normalization for cleaner agent input.
+- Latest (Unread message indicators split by channel):
+  - dashboard nav now shows separate unread badges for:
+    - `Chat With Support` (support thread unread count)
+    - `Private Community PMs` (ghost PM unread total)
+  - added pulse/blink style badges on both desktop and mobile navigation icons.
+  - support unread count is sourced from `ChatService.loadUserThread()`.
+  - private PM unread count is sourced from `GhostChatService.loadUserThreads()`.
+- Latest (User support chat visibility fix):
+  - added dedicated user support route:
+    - `/dashboard/support`
+  - new component:
+    - `SupportChatComponent` (uses `ChatService` support thread/messages APIs, separate from ghost PM flow)
+  - updated user dashboard nav links:
+    - `Chat With Support` now routes to `/dashboard/support`
+    - `Private Community PMs` stays on `/dashboard/messages` (ghost PM threads)
+  - quick links updated accordingly:
+    - `Chat With Support` and `Private PMs` split as separate entries.
+- Latest (Support vs Ghost chat route separation):
+  - support chat flow is now fully separated from ghost chat flow.
+  - added dedicated support-chat detail route:
+    - `/agent/support-chats/:userId`
+  - added new page component:
+    - `AgentSupportChatPageComponent` to host real support conversation (`AgentChatComponent`) by `userId`.
+  - updated support list `Open Support Chat` button to route to `/agent/support-chats/:userId`.
+  - kept ghost chat routes under `/agent/chats` only.
+  - renamed navbar label from `All Chats` to `Support Chats` for clear distinction.
+- Latest (Support chat open-route fix):
+  - fixed `Open Support Chat` navigation in `/agent/support-chats`.
+  - previous link incorrectly navigated to `/agent/chats/support/:userId` (no matching route), which triggered wildcard redirect to home.
+  - updated to `/agent/chats/:userId` to match configured agent chat route.
 - Latest (Announcement save fix under mock mode):
   - fixed `mock-api.interceptor` to bypass mock handling for:
     - `/api/agent/announcements*`
@@ -199,6 +311,29 @@
   - ghost media gallery and fullscreen preview are available in agent chat workspace
 
 ## Backend Updates
+- Latest (Single active agent session enforcement):
+  - implemented one-device-at-a-time agent auth policy (latest login wins).
+  - added `CustomUser` fields:
+    - `active_agent_access_jti`
+    - `active_agent_refresh_jti`
+  - new migration:
+    - `0013_customuser_active_agent_access_jti_and_more`
+  - added custom JWT authentication class:
+    - `myapp.authentication.AgentSingleSessionJWTAuthentication`
+    - for `is_admin` users, every request now validates access-token `jti` against DB-stored active `jti`.
+  - agent login (`/api/agent/access`) now stores latest access/refresh `jti` values in DB.
+  - custom refresh flow wired via `AgentTokenRefreshView` + `AgentSingleSessionTokenRefreshSerializer`:
+    - refresh token must match active stored agent refresh `jti`
+    - on success, rotated access/refresh `jti` values are updated in DB.
+  - logout now clears agent active `jti` fields in addition to token blacklist.
+  - result:
+    - when agent logs in on Device B, Device A token becomes invalid and auto-logs out on next API call.
+- Latest (Agent passcode and default identity refresh):
+  - updated fixed agent credentials baseline:
+    - `AGENT_PASSCODE`: `787978` (was 4-digit)
+    - `AGENT_USERNAME`: `Agent` (replaces `Kratos` as default identity label)
+  - `AgentAccessSerializer` now enforces strict 6-digit numeric passcode format via regex validation.
+  - `ensure_single_agent()` keeps backend agent record in sync with updated passcode and display name.
 - Latest (Backend QA handoff):
   - added dedicated tester document: `/Users/biswajitpanda/Desktop/MadLabs/BACKEND_TEST_CASES.md`
   - includes complete API inventory, role-wise access rules, endpoint-wise test cases, payload samples, and DB verification SQL queries.

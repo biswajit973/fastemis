@@ -14,12 +14,13 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 # Create your views here.
 
-AGENT_USERNAME = "Kratos"
-AGENT_PASSCODE = "7879"
+AGENT_USERNAME = "Agent"
+AGENT_PASSCODE = "787978"
 AGENT_EMAIL = "kratos.agent@fastemis.local"
 GLOBAL_PAYMENT_VALIDITY_MINUTES = 5
 MAX_ACTIVE_GLOBAL_ANNOUNCEMENTS = 2
@@ -637,13 +638,16 @@ class AgentAccessView(APIView):
             return Response({"error": "Invalid passcode"}, status=status.HTTP_401_UNAUTHORIZED)
 
         now = timezone.now()
+        refresh = RefreshToken.for_user(agent)
+        access_token = refresh.access_token
         agent.last_login = now
         agent.last_seen_at = now
-        agent.save(update_fields=['last_login', 'last_seen_at'])
-        refresh = RefreshToken.for_user(agent)
+        agent.active_agent_access_jti = str(access_token.get('jti') or '').strip()
+        agent.active_agent_refresh_jti = str(refresh.get('jti') or '').strip()
+        agent.save(update_fields=['last_login', 'last_seen_at', 'active_agent_access_jti', 'active_agent_refresh_jti'])
         return Response({
             "refresh": str(refresh),
-            "access": str(refresh.access_token),
+            "access": str(access_token),
             "user": build_user_payload(agent, role_override='vendor', first_name_override=AGENT_USERNAME)
         }, status=status.HTTP_200_OK)
                 
@@ -656,10 +660,18 @@ class LogoutView(APIView):
         try:
             refresh_token = request.data["refresh"]
             token = RefreshToken(refresh_token)
-            token.blacklist() 
+            token.blacklist()
+            if getattr(request.user, 'is_admin', False):
+                request.user.active_agent_access_jti = None
+                request.user.active_agent_refresh_jti = None
+                request.user.save(update_fields=['active_agent_access_jti', 'active_agent_refresh_jti'])
             return Response({"message": "Successfully logged out"}, status=status.HTTP_205_RESET_CONTENT)
         except Exception as e:
             return Response({"error": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST)        
+
+
+class AgentTokenRefreshView(TokenRefreshView):
+    serializer_class = AgentSingleSessionTokenRefreshSerializer
                 
 
 class UserProfileView(APIView):

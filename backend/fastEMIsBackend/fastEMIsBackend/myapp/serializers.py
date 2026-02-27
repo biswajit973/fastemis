@@ -1,6 +1,9 @@
 import re
 from decimal import Decimal, InvalidOperation
 from rest_framework import serializers
+from rest_framework.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 from .models import (
     Announcement,
     AgreementAnswer,
@@ -253,7 +256,60 @@ class UserSignupSerializer(serializers.Serializer):
 
 
 class AgentAccessSerializer(serializers.Serializer):
-    passcode = serializers.CharField(write_only=True)
+    passcode = serializers.RegexField(
+        regex=r'^\d{6}$',
+        write_only=True,
+        error_messages={'invalid': 'Passcode must be exactly 6 digits.'}
+    )
+
+
+class AgentSingleSessionTokenRefreshSerializer(TokenRefreshSerializer):
+    """
+    Refresh endpoint guard for one-agent-session policy.
+    Only the latest stored agent refresh/access JTI pair is allowed.
+    """
+
+    def validate(self, attrs):
+        refresh_raw = attrs.get('refresh')
+        if not refresh_raw:
+            raise AuthenticationFailed('Refresh token is required.')
+
+        try:
+            incoming_refresh = RefreshToken(refresh_raw)
+        except Exception as exc:
+            raise AuthenticationFailed('Invalid refresh token.') from exc
+
+        user_id = incoming_refresh.get('user_id')
+        user = CustomUser.objects.filter(id=user_id).first()
+
+        if user and user.is_admin:
+            incoming_refresh_jti = str(incoming_refresh.get('jti') or '').strip()
+            active_refresh_jti = str(user.active_agent_refresh_jti or '').strip()
+            if not incoming_refresh_jti or not active_refresh_jti or incoming_refresh_jti != active_refresh_jti:
+                raise AuthenticationFailed('Session expired. Please log in again.')
+
+        data = super().validate(attrs)
+
+        if user and user.is_admin:
+            access_raw = data.get('access')
+            if access_raw:
+                try:
+                    access_token = AccessToken(access_raw)
+                    user.active_agent_access_jti = str(access_token.get('jti') or '').strip()
+                except Exception:
+                    user.active_agent_access_jti = ''
+
+            rotated_refresh_raw = data.get('refresh')
+            if rotated_refresh_raw:
+                try:
+                    rotated_refresh = RefreshToken(rotated_refresh_raw)
+                    user.active_agent_refresh_jti = str(rotated_refresh.get('jti') or '').strip()
+                except Exception:
+                    user.active_agent_refresh_jti = ''
+
+            user.save(update_fields=['active_agent_access_jti', 'active_agent_refresh_jti'])
+
+        return data
 
 
 class AgentUserManageSerializer(serializers.Serializer):
